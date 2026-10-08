@@ -8,7 +8,15 @@ export interface Timebox {
   start: number
   /** Length in minutes. */
   duration: number
+  /** Marked finished by hand, possibly before its end time. */
+  done?: boolean
 }
+
+/** Blocks that can be planned at once. Finish one before adding another. */
+export const MAX_OPEN = 2
+
+/** Not finished yet: not marked done and its end time is still ahead. */
+export const isOpenBlock = (b: Timebox, minute: number) => !b.done && b.start + b.duration > minute
 
 /** Blocks keyed by the main clock's calendar date, e.g. { "2026-10-08": Timebox[] }. */
 type TimeboxStore = Record<string, Timebox[]>
@@ -69,8 +77,8 @@ export interface TimeboxStatus {
 export function timeboxStatus(boxes: Timebox[], minute: number, second = 0): TimeboxStatus {
   const t = minute + second / 60
   let current: Timebox | null = null
-  for (const b of boxes) if (b.start <= t && t < b.start + b.duration) current = b
-  const next = boxes.find((b) => b.start > t) ?? null
+  for (const b of boxes) if (!b.done && b.start <= t && t < b.start + b.duration) current = b
+  const next = boxes.find((b) => !b.done && b.start > t) ?? null
   if (!current) return { current, next, left: 0, progress: 0 }
   const end = current.start + current.duration
   return { current, next, left: Math.ceil(end - t), progress: (t - current.start) / current.duration }
@@ -112,5 +120,9 @@ export function useTimeboxes(dateKey: string) {
     setState((st) => ({ ...st, boxes: st.boxes.filter((b) => b.id !== id) }))
   }, [])
 
-  return { boxes: state.dateKey === dateKey ? state.boxes : [], add, remove }
+  const finish = useCallback((id: string) => {
+    setState((st) => ({ ...st, boxes: st.boxes.map((b) => (b.id === id ? { ...b, done: true } : b)) }))
+  }, [])
+
+  return { boxes: state.dateKey === dateKey ? state.boxes : [], add, remove, finish }
 }

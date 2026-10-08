@@ -149,7 +149,13 @@ export default function App() {
       </div>
 
       <div className="chrome chrome--bottom-center" data-overlay="tool">
-        <TimeboxNow status={boxStatus} hour12={settings.hour12} onOpen={() => setTool('timebox')} />
+        <TimeboxNow
+          boxes={timeboxes.boxes}
+          status={boxStatus}
+          minute={minute}
+          hour12={settings.hour12}
+          onOpen={() => setTool('timebox')}
+        />
       </div>
 
       <div className="chrome chrome--top-left" data-overlay="tool" data-hidden={chromeHidden}>
@@ -163,6 +169,7 @@ export default function App() {
           zoneLabel={multiZone ? primaryCity : undefined}
           onAdd={timeboxes.add}
           onRemove={timeboxes.remove}
+          onFinish={timeboxes.finish}
         />
         <Music {...toolProps('music')} />
       </div>

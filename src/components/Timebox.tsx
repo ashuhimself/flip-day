@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
-import { CalendarClock, Plus, X } from 'lucide-react'
-import { type Timebox as TimeboxItem, type TimeboxStatus } from '../hooks/useTimeboxes'
+import { CalendarClock, Check, Plus, X } from 'lucide-react'
+import { MAX_OPEN, isOpenBlock, type Timebox as TimeboxItem, type TimeboxStatus } from '../hooks/useTimeboxes'
 import { playChime, primeAudio } from '../lib/chime'
 import { formatMinutes } from '../lib/time'
 import ToolPopover from './ToolPopover'
@@ -20,6 +20,7 @@ interface TimeboxProps {
   zoneLabel?: string
   onAdd: (title: string, start: number, duration: number) => void
   onRemove: (id: string) => void
+  onFinish: (id: string) => void
 }
 
 /** 42 → "42m", 95 → "1h 35m" */
@@ -42,7 +43,7 @@ function fromInput(value: string): number | null {
 /** Next free start: after the last block still running or ahead, else now rounded up to 5 minutes. */
 function suggestStart(boxes: TimeboxItem[], minute: number): number {
   const roundedNow = Math.ceil(minute / 5) * 5
-  const busyUntil = boxes.reduce((end, b) => Math.max(end, b.start + b.duration > minute ? b.start + b.duration : 0), 0)
+  const busyUntil = boxes.reduce((end, b) => Math.max(end, isOpenBlock(b, minute) ? b.start + b.duration : 0), 0)
   return Math.min(DAY - 5, Math.max(roundedNow, busyUntil))
 }
 
@@ -57,10 +58,13 @@ export default function Timebox({
   zoneLabel,
   onAdd,
   onRemove,
+  onFinish,
 }: TimeboxProps) {
   const [title, setTitle] = useState('')
   const [start, setStart] = useState(() => toInput(suggestStart(boxes, minute)))
   const [duration, setDuration] = useState(30)
+  // Bumped on each blocked add, to replay the warning's shake.
+  const [attempts, setAttempts] = useState(0)
   const titleRef = useRef<HTMLInputElement>(null)
 
   // Fresh suggestion each time the panel opens.
@@ -86,9 +90,16 @@ export default function Timebox({
   const overlap =
     startMinutes == null || end == null
       ? undefined
-      : boxes.find((b) => b.start < end && startMinutes < b.start + b.duration)
+      : boxes.find((b) => !b.done && b.start < end && startMinutes < b.start + b.duration)
+
+  const openBlocks = boxes.filter((b) => isOpenBlock(b, minute))
+  const full = openBlocks.length >= MAX_OPEN
 
   const submit = () => {
+    if (full) {
+      setAttempts((n) => n + 1)
+      return
+    }
     if (!title.trim() || startMinutes == null) return
     primeAudio()
     onAdd(title, startMinutes, duration)
@@ -158,7 +169,19 @@ export default function Timebox({
           </div>
         </div>
 
-        <p className="timebox-hint" data-warn={!!overlap || undefined}>
+        {full && (
+          <p key={attempts} className="timebox-limit" data-shake={attempts > 0 || undefined} role="alert">
+            You can plan {MAX_OPEN} blocks at a time. Finish{' '}
+            {openBlocks.map((b, i) => (
+              <span key={b.id}>
+                {i > 0 && ' or '}“{b.title}”
+              </span>
+            ))}{' '}
+            first.
+          </p>
+        )}
+
+        <p className="timebox-hint" data-warn={!!overlap || undefined} hidden={full}>
           {startMinutes == null || end == null
             ? 'Pick a start time.'
             : overlap
@@ -166,7 +189,12 @@ export default function Timebox({
               : `${formatMinutes(startMinutes, hour12)} – ${formatMinutes(end, hour12)}`}
         </p>
 
-        <button type="submit" className="button button--primary" disabled={!title.trim() || startMinutes == null}>
+        <button
+          type="submit"
+          className="button button--primary"
+          data-blocked={full || undefined}
+          disabled={!full && (!title.trim() || startMinutes == null)}
+        >
           Add block
         </button>
       </form>
@@ -174,7 +202,7 @@ export default function Timebox({
       {boxes.length ? (
         <ul className="timebox-list" aria-label="Today’s blocks">
           {boxes.map((b) => {
-            const state = b.id === current?.id ? 'now' : b.start + b.duration <= minute ? 'done' : 'upcoming'
+            const state = b.done || b.start + b.duration <= minute ? 'done' : b.id === current?.id ? 'now' : 'upcoming'
             return (
               <li key={b.id} className="timebox-item" data-state={state}>
                 <span className="timebox-item__time">
@@ -183,14 +211,27 @@ export default function Timebox({
                 </span>
                 <span className="timebox-item__title">{b.title}</span>
                 {state === 'now' && <span className="timebox-item__left">{formatLeft(left)}</span>}
-                <button
-                  type="button"
-                  className="todo-action"
-                  onClick={() => onRemove(b.id)}
-                  aria-label={`Delete block: ${b.title}`}
-                >
-                  <X size={14} strokeWidth={1.75} aria-hidden="true" />
-                </button>
+                <span className="timebox-item__actions">
+                  {state !== 'done' && (
+                    <button
+                      type="button"
+                      className="todo-action"
+                      onClick={() => onFinish(b.id)}
+                      aria-label={`Mark done: ${b.title}`}
+                      title="Mark done"
+                    >
+                      <Check size={14} strokeWidth={2} aria-hidden="true" />
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    className="todo-action"
+                    onClick={() => onRemove(b.id)}
+                    aria-label={`Delete block: ${b.title}`}
+                  >
+                    <X size={14} strokeWidth={1.75} aria-hidden="true" />
+                  </button>
+                </span>
                 {state === 'now' && (
                   <div className="progress-track timebox-item__progress" aria-hidden="true">
                     <div className="progress-bar" style={{ transform: `scaleX(${status.progress})` }} />
@@ -208,30 +249,51 @@ export default function Timebox({
 }
 
 interface TimeboxNowProps {
+  boxes: TimeboxItem[]
   status: TimeboxStatus
+  /** Minutes after midnight on the main clock. */
+  minute: number
   hour12: boolean
   onOpen: () => void
 }
 
-/** The running block (or the next one) under the clock. */
-export function TimeboxNow({ status, hour12, onOpen }: TimeboxNowProps) {
-  const { current, next, left, progress } = status
-  if (!current && !next) return null
+/** Up to two unfinished blocks as cards under the clock: the running one and the next. */
+export function TimeboxNow({ boxes, status, minute, hour12, onOpen }: TimeboxNowProps) {
+  const open = boxes.filter((b) => isOpenBlock(b, minute)).slice(0, MAX_OPEN)
+  if (!open.length) return null
 
   return (
-    <button type="button" className="timebox-now" onClick={onOpen} data-active={!!current}>
-      <span className="timebox-now__row">
-        <span className="timebox-now__tag">{current ? 'Now' : 'Next'}</span>
-        <span className="timebox-now__title">{(current ?? next)!.title}</span>
-        <span className="timebox-now__meta">
-          {current ? `${formatLeft(left)} left` : formatMinutes(next!.start, hour12)}
-        </span>
-      </span>
-      {current && (
-        <span className="progress-track timebox-now__progress" aria-hidden="true">
-          <span className="progress-bar" style={{ transform: `scaleX(${progress})`, display: 'block' }} />
-        </span>
-      )}
-    </button>
+    <div className="timebox-now-row">
+      {open.map((b, i) => {
+        const active = b.id === status.current?.id
+        return (
+          // Keyed by block and state, so the entrance animation replays when a block starts.
+          <button
+            key={`${b.id}-${active ? 'now' : 'next'}`}
+            type="button"
+            className="timebox-now"
+            onClick={onOpen}
+            data-active={active}
+            style={{ animationDelay: `${i * 70}ms` }}
+          >
+            <span className="timebox-now__row">
+              <span className="timebox-now__tag">
+                {active && <span className="timebox-now__pulse" aria-hidden="true" />}
+                {active ? 'Now' : 'Next'}
+              </span>
+              <span className="timebox-now__title">{b.title}</span>
+              <span className="timebox-now__meta">
+                {active ? `${formatLeft(status.left)} left` : formatMinutes(b.start, hour12)}
+              </span>
+            </span>
+            {active && (
+              <span className="progress-track timebox-now__progress" aria-hidden="true">
+                <span className="progress-bar" style={{ transform: `scaleX(${status.progress})` }} />
+              </span>
+            )}
+          </button>
+        )
+      })}
+    </div>
   )
 }
