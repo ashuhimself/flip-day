@@ -9,8 +9,8 @@ export interface Zone {
   region: string
 }
 
-/** The places on offer: India, the US mainland, Australia and New Zealand. */
-export const ZONES: Zone[] = [
+/** The listed places: India, the US mainland, Australia and New Zealand. */
+const LISTED: Zone[] = [
   { id: 'Asia/Kolkata', tz: 'Asia/Kolkata', city: 'India', region: 'IST' },
   { id: 'America/New_York', tz: 'America/New_York', city: 'New York', region: 'US Eastern' },
   { id: 'atlanta', tz: 'America/New_York', city: 'Atlanta', region: 'US Eastern' },
@@ -25,8 +25,49 @@ export const ZONES: Zone[] = [
   { id: 'wellington', tz: 'Pacific/Auckland', city: 'Wellington', region: 'New Zealand' },
 ]
 
+/** Fallback when the browser can't tell us its zone. */
 export const DEFAULT_ZONE = 'Asia/Kolkata'
 export const MAX_ZONES = 3
+
+/** Old or alternative names some systems report, mapped to the listed zone. */
+const ALIASES: Record<string, string> = {
+  'Asia/Calcutta': 'Asia/Kolkata',
+  'US/Eastern': 'America/New_York',
+  'US/Central': 'America/Chicago',
+  'US/Mountain': 'America/Denver',
+  'US/Pacific': 'America/Los_Angeles',
+  'Australia/West': 'Australia/Perth',
+  'Australia/South': 'Australia/Adelaide',
+  'Australia/Queensland': 'Australia/Brisbane',
+  'Australia/NSW': 'Australia/Sydney',
+  'Australia/ACT': 'Australia/Sydney',
+  'Australia/Canberra': 'Australia/Sydney',
+  NZ: 'Pacific/Auckland',
+}
+
+/** The visitor's own IANA zone, as reported by the browser. */
+function detectZone(): string {
+  try {
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone
+    if (!tz) return DEFAULT_ZONE
+    new Intl.DateTimeFormat('en-US', { timeZone: tz }) // throws if the zone is unusable
+    return ALIASES[tz] ?? tz
+  } catch {
+    return DEFAULT_ZONE
+  }
+}
+
+/** "America/Argentina/Buenos_Aires" → "Buenos Aires" */
+const cityFromTz = (tz: string) => tz.split('/').pop()!.replace(/_/g, ' ')
+
+const localTz = detectZone()
+const localListed = LISTED.find((z) => z.id === localTz)
+
+/** The visitor's zone: a listed place when it matches, otherwise their own city (added to the list). */
+export const LOCAL_ZONE: Zone = localListed ?? { id: localTz, tz: localTz, city: cityFromTz(localTz), region: 'Your time' }
+
+/** Every place the picker offers. A visitor outside the list sees their own city first. */
+export const ZONES: Zone[] = localListed ? LISTED : [LOCAL_ZONE, ...LISTED]
 
 export const zoneById = (id: string) => ZONES.find((z) => z.id === id)
 
@@ -37,7 +78,7 @@ export const tzOf = (id: string) => zoneById(id)?.tz ?? DEFAULT_ZONE
 export function sanitizeZones(value: unknown): string[] {
   const ids = Array.isArray(value) ? value.filter((v): v is string => typeof v === 'string' && !!zoneById(v)) : []
   const unique = [...new Set(ids)].slice(0, MAX_ZONES)
-  return unique.length ? unique : [DEFAULT_ZONE]
+  return unique.length ? unique : [LOCAL_ZONE.id]
 }
 
 export interface ZonedParts {

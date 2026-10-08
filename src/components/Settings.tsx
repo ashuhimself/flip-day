@@ -1,7 +1,7 @@
 import { useId } from 'react'
 import { Check, Settings2 } from 'lucide-react'
 import type { Settings as SettingsValues } from '../hooks/useSettings'
-import { MAX_ZONES, ZONES } from '../lib/timezones'
+import { LOCAL_ZONE, MAX_ZONES, ZONES } from '../lib/timezones'
 import ToolPopover from './ToolPopover'
 
 interface SettingsProps {
@@ -131,7 +131,10 @@ function ZonePicker({ value, onChange }: ZonePickerProps) {
                 <span className="zone-option__box" aria-hidden="true">
                   <Check size={11} strokeWidth={3} />
                 </span>
-                <span className="zone-option__name">{zone.city}</span>
+                <span className="zone-option__name">
+                  {zone.city}
+                  {zone.id === LOCAL_ZONE.id && <span className="zone-option__you"> · You</span>}
+                </span>
                 <span className="zone-option__region">{index === 0 ? 'Main' : zone.region}</span>
               </button>
             </li>

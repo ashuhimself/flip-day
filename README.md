@@ -9,7 +9,7 @@ Flipday shows a large split-flap clock in the middle of the screen. Around it, s
 ## Features
 
 - **Flip clock** with a real split-flap animation. 12 or 24 hour, seconds on or off, date on or off.
-- **Time zones.** Show 1 to 3 clocks at once. The first one is the main clock. The others appear smaller underneath with their own date and the time difference. Included places: India, New York, Atlanta, Chicago, Denver, Los Angeles, Perth, Adelaide, Brisbane, Sydney, Auckland and Wellington.
+- **Time zones.** Show 1 to 3 clocks at once. The first one is the main clock. The others appear smaller underneath with their own date and the time difference. Included places: India, New York, Atlanta, Chicago, Denver, Los Angeles, Perth, Adelaide, Brisbane, Sydney, Auckland and Wellington. The main clock starts on your own time zone. If your city is not in the list, it is added for you.
 - **Timeboxing.** Give tasks a fixed slot on the clock (for example 9:00 to 10:30, "Deep work"). You can plan two blocks at a time; finish one (or mark it done) before adding the next. Both show at the bottom of the screen with time left, and a soft chime plays when a block starts or ends.
 - **Today's tasks.** A simple to-do list for the day. A new day starts with an empty list.
 - **Pomodoro timer.** 25 minute focus sessions with short and long breaks.
