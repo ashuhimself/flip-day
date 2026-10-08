@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#0c0c0d" />
+    <meta name="color-scheme" content="dark light" />
+    <meta name="description" content="A calm fullscreen flip clock with a daily todo list, Pomodoro timer and music." />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect x='4' y='8' width='26' height='48' rx='6' fill='%231c1c1f'/%3E%3Crect x='34' y='8' width='26' height='48' rx='6' fill='%231c1c1f'/%3E%3Crect x='4' y='31' width='56' height='2' fill='%230c0c0d'/%3E%3C/svg%3E"
+    />
+    <title>Flip Clock</title>
+    <script>
+      // Apply the saved (or system) theme before first paint to avoid a flash.
+      ;(function () {
+        var theme
+        try {
+          theme = JSON.parse(localStorage.getItem('flipclock:theme:v1'))
+        } catch (e) {}
+        if (theme !== 'light' && theme !== 'dark')
+          theme = matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark'
+        document.documentElement.dataset.theme = theme
+        if (theme === 'light') document.querySelector('meta[name="theme-color"]').content = '#ebe9e4'
+      })()
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
