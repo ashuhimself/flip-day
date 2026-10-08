@@ -16,7 +16,10 @@ export const pipSupported = () => typeof window !== 'undefined' && 'documentPict
 /** Copy the app's styles into the PiP document (Vite uses <style> in dev, <link> in prod). */
 function copyStyles(target: Document) {
   document.head.querySelectorAll('link[rel="stylesheet"], style').forEach((node) => {
-    target.head.appendChild(node.cloneNode(true))
+    const copy = node.cloneNode(true) as HTMLElement
+    // Relative hrefs would resolve against the PiP window's about:blank URL.
+    if (copy instanceof HTMLLinkElement) copy.href = (node as HTMLLinkElement).href
+    target.head.appendChild(copy)
   })
 }
 
@@ -32,7 +35,7 @@ export function usePictureInPicture() {
     }
     const w = await api.requestWindow(size)
     copyStyles(w.document)
-    w.document.title = 'Flip Clock'
+    w.document.title = 'Flipday'
     w.addEventListener('pagehide', () => setPipWindow(null), { once: true })
     setPipWindow(w)
   }, [])

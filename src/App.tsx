@@ -117,7 +117,7 @@ export default function App() {
   // Show the time in the tab title too.
   const { hours, minutes, meridiem } = getClockParts(now, settings.hour12, primaryZone)
   useEffect(() => {
-    document.title = `${hours}:${minutes}${meridiem ? ` ${meridiem}` : ''} · Flip Clock`
+    document.title = `${hours}:${minutes}${meridiem ? ` ${meridiem}` : ''} · Flipday`
   }, [hours, minutes, meridiem])
 
   const remaining = todos.filter((t) => !t.completed).length

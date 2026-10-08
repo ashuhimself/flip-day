@@ -2,7 +2,7 @@
 
 A calm, full-screen flip clock that helps you plan and get through your day.
 
-Live: https://flip-clock-sigma.vercel.app
+Live: https://flip-clock-sigma.vercel.app (Vercel) and https://ashuhimself.github.io/flip-day/ (GitHub Pages)
 
 Flipday shows a large split-flap clock in the middle of the screen. Around it, small tools fade in when you move the mouse and fade out when you stop, so the clock stays the focus.
 
@@ -48,8 +48,8 @@ npm -v
 ### 1. Get the code
 
 ```bash
-git clone <repository-url> flipday
-cd flipday
+git clone https://github.com/ashuhimself/flip-day.git
+cd flip-day
 ```
 
 ### 2. Install dependencies
@@ -90,6 +90,14 @@ npx vercel --prod   # production deploy
 ```
 
 Or connect the GitHub repository in the Vercel dashboard. It detects Vite on its own, and every push to the main branch then deploys.
+
+With GitHub Pages:
+
+1. Push the code to a GitHub repository.
+2. In the repository, open **Settings → Pages** and set **Source** to **GitHub Actions**.
+3. Push to `main`. The workflow in `.github/workflows/deploy.yml` builds the site and publishes it to `https://<username>.github.io/<repo-name>/`.
+
+The build uses relative paths, so it works in a subfolder like this without any extra setup.
 
 ## Project structure
 
