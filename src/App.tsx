@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
+import AlarmBanner from './components/AlarmBanner'
 import DateDisplay from './components/DateDisplay'
 import FlipClock from './components/FlipClock'
 import Music from './components/Music'
@@ -11,6 +12,7 @@ import Timebox, { TimeboxNow } from './components/Timebox'
 import TodoTrigger from './components/TodoTrigger'
 import TodoPanel from './components/todo/TodoPanel'
 import ZoneClocks from './components/ZoneClocks'
+import { useAlarm } from './hooks/useAlarm'
 import { useIdle } from './hooks/useIdle'
 import { useNow } from './hooks/useNow'
 import { usePomodoro } from './hooks/usePomodoro'
@@ -18,6 +20,7 @@ import { useSettings } from './hooks/useSettings'
 import { useTheme } from './hooks/useTheme'
 import { isOpenBlock, timeboxStatus, useTimeboxes } from './hooks/useTimeboxes'
 import { useTodos, type Todo } from './hooks/useTodos'
+import { playChime } from './lib/chime'
 import { notify, setNotificationsEnabled } from './lib/notify'
 import { STORAGE_KEYS, readJSON, writeJSON } from './lib/storage'
 import { formatMinutes, getClockParts, minuteOfDay, toDateKey } from './lib/time'
@@ -34,8 +37,12 @@ type Tool = 'settings' | 'pomodoro' | 'timebox' | 'music' | 'summary'
 export default function App() {
   const [settings, updateSetting] = useSettings()
   const [theme, toggleTheme] = useTheme()
+  // Rings when a timebox or a Pomodoro session ends, until stopped.
+  const { alarm, ring, stop: stopAlarm } = useAlarm()
   // Shared by the Pomodoro panel and the pop-out window.
-  const timer = usePomodoro()
+  const timer = usePomodoro((mode) =>
+    mode === 'focus' ? ring('Pomodoro done', 'Time for a break.') : ring('Break over', 'Ready to focus again?'),
+  )
   const now = useNow(settings.showSeconds ? 'second' : 'minute')
   const dateKey = toDateKey(now)
   const { todos, add, toggle, complete, edit, remove, leftover, carryOver, dismissLeftover } = useTodos(dateKey)
@@ -60,7 +67,7 @@ export default function App() {
     [timeboxes.boxes, finishBox, complete],
   )
 
-  // Desktop notifications as blocks start, end and come up next.
+  // As timeboxes start (chime), end (alarm) and come up next (notification).
   useEffect(() => setNotificationsEnabled(settings.notifications), [settings.notifications])
   const lastMinute = useRef(minute)
   useEffect(() => {
@@ -73,11 +80,13 @@ export default function App() {
     for (const b of timeboxes.boxes) {
       if (b.done) continue
       const end = b.start + b.duration
-      if (crossed(b.start)) notify(`Now: ${b.title}`, `Until ${fmt(end)}`)
-      else if (crossed(end)) notify(`Block ended: ${b.title}`)
-      else if (crossed(b.start - 5)) notify(`Next: ${b.title} in 5 min`, `Starts at ${fmt(b.start)}`)
+      if (crossed(end)) ring(`Timebox ended: ${b.title}`, `${fmt(b.start)} – ${fmt(end)}`)
+      else if (crossed(b.start)) {
+        playChime()
+        notify(`Now: ${b.title}`, `Until ${fmt(end)}`)
+      } else if (crossed(b.start - 5)) notify(`Next: ${b.title} in 5 min`, `Starts at ${fmt(b.start)}`)
     }
-  }, [minute, timeboxes.boxes, settings.hour12])
+  }, [minute, timeboxes.boxes, settings.hour12, ring])
 
   // Start time of each task's unfinished block, for the badge in the todo list.
   const scheduled = useMemo(() => {
@@ -169,7 +178,8 @@ export default function App() {
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        if (tool) setTool(null)
+        if (alarm) stopAlarm()
+        else if (tool) setTool(null)
         else if (panelOpen) closePanel()
         return
       }
@@ -185,7 +195,7 @@ export default function App() {
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [tool, panelOpen, closePanel, togglePanel, timer, boxStatus.current, finishBlock])
+  }, [tool, panelOpen, closePanel, togglePanel, timer, boxStatus.current, finishBlock, alarm, stopAlarm])
 
   // Show the time in the tab title too.
   const { hours, minutes, meridiem } = getClockParts(now, settings.hour12, primaryZone)
@@ -281,6 +291,8 @@ export default function App() {
       >
         <TodoTrigger ref={triggerRef} open={panelOpen} remaining={remaining} onToggle={togglePanel} />
       </div>
+
+      <AlarmBanner alarm={alarm} onStop={stopAlarm} />
 
       <TodoPanel
         ref={panelRef}

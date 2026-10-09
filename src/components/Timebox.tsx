@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { CalendarClock, Check, Plus, X } from 'lucide-react'
 import { MAX_OPEN, isOpenBlock, type Timebox as TimeboxItem, type TimeboxStatus } from '../hooks/useTimeboxes'
 import type { Todo } from '../hooks/useTodos'
-import { playChime, primeAudio } from '../lib/chime'
+import { primeAudio } from '../lib/chime'
 import { formatMinutes } from '../lib/time'
 import ToolPopover from './ToolPopover'
 
@@ -106,15 +106,6 @@ export default function Timebox({
     if (window.matchMedia('(pointer: fine)').matches) titleRef.current?.focus({ preventScroll: true })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open])
-
-  // Chime when the clock moves into or out of a block (not when one is added or deleted).
-  const currentId = status.current?.id ?? null
-  const prev = useRef({ id: currentId, minute })
-  useEffect(() => {
-    const p = prev.current
-    if (p.id !== currentId && p.minute !== minute) playChime()
-    prev.current = { id: currentId, minute }
-  }, [currentId, minute])
 
   const openBlocks = boxes.filter((b) => isOpenBlock(b, minute))
   const full = openBlocks.length >= MAX_OPEN

@@ -1,6 +1,5 @@
-import { useCallback, useEffect, useState } from 'react'
-import { playChime, primeAudio } from '../lib/chime'
-import { notify } from '../lib/notify'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { primeAudio } from '../lib/chime'
 import { logFocusSession } from '../lib/stats'
 import { STORAGE_KEYS, readJSON, writeJSON } from '../lib/storage'
 
@@ -60,9 +59,12 @@ function load(): PomodoroState {
   return state
 }
 
-export function usePomodoro() {
+/** `onComplete` runs when a session reaches zero while the page is open. */
+export function usePomodoro(onComplete?: (mode: PomodoroMode) => void) {
   const [state, setState] = useState(load)
   const [now, setNow] = useState(() => Date.now())
+  const onCompleteRef = useRef(onComplete)
+  onCompleteRef.current = onComplete
 
   useEffect(() => writeJSON(STORAGE_KEYS.pomodoro, state), [state])
 
@@ -73,12 +75,11 @@ export function usePomodoro() {
     const tick = () => {
       const t = Date.now()
       if (t >= endsAt) {
-        playChime()
         setState((s) => {
           if (s.mode === 'focus') logFocusSession(endsAt)
           return afterComplete(s)
         })
-        notify(state.mode === 'focus' ? 'Focus session done' : 'Break over', state.mode === 'focus' ? 'Time for a break.' : 'Ready to focus again?')
+        onCompleteRef.current?.(state.mode)
       } else setNow(t)
     }
     tick()

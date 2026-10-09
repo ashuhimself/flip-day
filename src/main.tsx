@@ -2,6 +2,9 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App'
+import { primeOnFirstGesture } from './lib/chime'
+
+primeOnFirstGesture()
 
 // Installable, and works offline once loaded. Relative, so it also works under /flip-day/ on GitHub Pages.
 if (import.meta.env.PROD && 'serviceWorker' in navigator) {

@@ -12,8 +12,25 @@ export function primeAudio() {
   }
 }
 
+/**
+ * Browsers only allow sound after the user has interacted with the page, so
+ * unlock it on the first click or key press anywhere, not just in a panel.
+ */
+export function primeOnFirstGesture() {
+  const unlock = () => {
+    primeAudio()
+    if (ctx?.state === 'running') {
+      window.removeEventListener('pointerdown', unlock, true)
+      window.removeEventListener('keydown', unlock, true)
+    }
+  }
+  window.addEventListener('pointerdown', unlock, true)
+  window.addEventListener('keydown', unlock, true)
+}
+
 export function playChime() {
   if (!ctx) return
+  if (ctx.state === 'suspended') void ctx.resume()
   const start = ctx.currentTime + 0.02
   const notes: [number, number][] = [
     [880, 0],
@@ -28,7 +45,7 @@ export function playChime() {
     osc.type = 'sine'
     osc.frequency.value = freq
     gain.gain.setValueAtTime(0, t)
-    gain.gain.linearRampToValueAtTime(0.18, t + 0.02)
+    gain.gain.linearRampToValueAtTime(0.3, t + 0.02)
     gain.gain.exponentialRampToValueAtTime(0.0001, t + 1.2)
     osc.connect(gain).connect(ctx.destination)
     osc.start(t)
