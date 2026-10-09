@@ -26,7 +26,7 @@ interface MusicProps {
   onOpenChange: (open: boolean) => void
 }
 
-/** Plays a YouTube link through the official embedded player. */
+/** Plays a YouTube link through the official embedded player, on repeat until paused. */
 export default function Music({ open, onOpenChange }: MusicProps) {
   const [prefs] = useState(() => ({ url: '', volume: 60, ...readJSON<Partial<MusicPrefs>>(STORAGE_KEYS.music, {}) }))
   const [url, setUrl] = useState(prefs.url)
@@ -75,6 +75,12 @@ export default function Music({ open, onOpenChange }: MusicProps) {
               if (pendingIdRef.current) e.target.loadVideoById(pendingIdRef.current)
             },
             onStateChange: (e) => {
+              // Loop: start the video again as soon as it ends.
+              if (e.data === YT.PlayerState.ENDED) {
+                e.target.seekTo(0, true)
+                e.target.playVideo()
+                return
+              }
               setPlaying(e.data === YT.PlayerState.PLAYING || e.data === YT.PlayerState.BUFFERING)
               const videoTitle = e.target.getVideoData?.().title
               if (videoTitle) setTitle(videoTitle)

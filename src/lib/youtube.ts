@@ -30,6 +30,7 @@ export function parseYouTubeId(input: string): string | null {
 export interface YTPlayer {
   playVideo(): void
   pauseVideo(): void
+  seekTo(seconds: number, allowSeekAhead: boolean): void
   loadVideoById(videoId: string): void
   setVolume(volume: number): void
   getVideoData(): { title?: string }
