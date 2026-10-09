@@ -10,6 +10,8 @@ export interface Timebox {
   duration: number
   /** Marked finished by hand, possibly before its end time. */
   done?: boolean
+  /** The task this block was planned from, if any. */
+  todoId?: string
 }
 
 /** Blocks that can be planned at once. Finish one before adding another. */
@@ -105,14 +107,14 @@ export function useTimeboxes(dateKey: string) {
     return () => window.removeEventListener('storage', onStorage)
   }, [dateKey])
 
-  const add = useCallback((title: string, start: number, duration: number) => {
+  const add = useCallback((title: string, start: number, duration: number, todoId?: string) => {
     const trimmed = title.trim()
     const s = Math.max(0, Math.min(DAY - 1, Math.round(start)))
     const d = Math.max(1, Math.min(DAY - s, Math.round(duration)))
     if (!trimmed) return
     setState((st) => ({
       ...st,
-      boxes: [...st.boxes, { id: newId(), title: trimmed, start: s, duration: d }].sort(byStart),
+      boxes: [...st.boxes, { id: newId(), title: trimmed, start: s, duration: d, ...(todoId && { todoId }) }].sort(byStart),
     }))
   }, [])
 

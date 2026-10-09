@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { CalendarClock, Check, Plus, X } from 'lucide-react'
 import { MAX_OPEN, isOpenBlock, type Timebox as TimeboxItem, type TimeboxStatus } from '../hooks/useTimeboxes'
+import type { Todo } from '../hooks/useTodos'
 import { playChime, primeAudio } from '../lib/chime'
 import { formatMinutes } from '../lib/time'
 import ToolPopover from './ToolPopover'
@@ -18,7 +19,11 @@ interface TimeboxProps {
   hour12: boolean
   /** Which clock the times belong to, shown when several zones are on screen. */
   zoneLabel?: string
-  onAdd: (title: string, start: number, duration: number) => void
+  /** Today's tasks, offered as quick picks for a block's title. */
+  todos: Todo[]
+  /** A task sent over from the todo list to plan; `n` changes on every request. */
+  request: { todo: Todo; n: number } | null
+  onAdd: (title: string, start: number, duration: number, todoId?: string) => void
   onRemove: (id: string) => void
   onFinish: (id: string) => void
 }
@@ -56,11 +61,15 @@ export default function Timebox({
   minute,
   hour12,
   zoneLabel,
+  todos,
+  request,
   onAdd,
   onRemove,
   onFinish,
 }: TimeboxProps) {
   const [title, setTitle] = useState('')
+  // The task the title was picked from; cleared once the title is edited away from it.
+  const [todoId, setTodoId] = useState<string | null>(null)
   const [start, setStart] = useState(() => toInput(suggestStart(boxes, minute)))
   const [duration, setDuration] = useState(30)
   // Bumped on each blocked add, to replay the warning's shake.
@@ -85,15 +94,32 @@ export default function Timebox({
     prev.current = { id: currentId, minute }
   }, [currentId, minute])
 
+  const openBlocks = boxes.filter((b) => isOpenBlock(b, minute))
+  const full = openBlocks.length >= MAX_OPEN
+
+  const pick = (todo: Todo) => {
+    setTitle(todo.text)
+    setTodoId(todo.id)
+  }
+
+  // A task sent from the todo list: fill it in, or shake the limit warning if no slot is free.
+  useEffect(() => {
+    if (!request) return
+    pick(request.todo)
+    if (full) setAttempts((n) => n + 1)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [request])
+
+  // Unfinished tasks that don't already have an unfinished block.
+  const planned = new Set(openBlocks.map((b) => b.todoId))
+  const picks = todos.filter((t) => !t.completed && !planned.has(t.id))
+
   const startMinutes = fromInput(start)
   const end = startMinutes == null ? null : Math.min(DAY, startMinutes + duration)
   const overlap =
     startMinutes == null || end == null
       ? undefined
       : boxes.find((b) => !b.done && b.start < end && startMinutes < b.start + b.duration)
-
-  const openBlocks = boxes.filter((b) => isOpenBlock(b, minute))
-  const full = openBlocks.length >= MAX_OPEN
 
   const submit = () => {
     if (full) {
@@ -102,8 +128,9 @@ export default function Timebox({
     }
     if (!title.trim() || startMinutes == null) return
     primeAudio()
-    onAdd(title, startMinutes, duration)
+    onAdd(title, startMinutes, duration, todoId ?? undefined)
     setTitle('')
+    setTodoId(null)
     const nextStart = Math.min(DAY - 5, startMinutes + duration)
     setStart(toInput(Math.max(nextStart, suggestStart(boxes, minute))))
     titleRef.current?.focus({ preventScroll: true })
@@ -139,7 +166,10 @@ export default function Timebox({
           <input
             ref={titleRef}
             value={title}
-            onChange={(e) => setTitle(e.target.value)}
+            onChange={(e) => {
+              setTitle(e.target.value)
+              if (todoId && e.target.value.trim() !== todos.find((t) => t.id === todoId)?.text) setTodoId(null)
+            }}
             placeholder="What will you work on?"
             aria-label="Block title"
             maxLength={80}
@@ -147,6 +177,23 @@ export default function Timebox({
             enterKeyHint="done"
           />
         </div>
+
+        {picks.length > 0 && (
+          <div className="timebox-picks" role="group" aria-label="From today’s tasks">
+            {picks.map((t) => (
+              <button
+                key={t.id}
+                type="button"
+                className="timebox-pick"
+                aria-pressed={todoId === t.id}
+                onClick={() => pick(t)}
+                title={t.text}
+              >
+                {t.text}
+              </button>
+            ))}
+          </div>
+        )}
 
         <div className="timebox-when">
           <label className="timebox-start">

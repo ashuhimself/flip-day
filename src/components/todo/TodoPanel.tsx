@@ -16,10 +16,13 @@ interface TodoPanelProps {
   onToggle: (id: string) => void
   onEdit: (id: string, text: string) => void
   onRemove: (id: string) => void
+  /** Start times of unfinished blocks, by the task they were planned from. */
+  scheduled: Record<string, string>
+  onSchedule: (todo: Todo) => void
 }
 
 const TodoPanel = forwardRef<HTMLElement, TodoPanelProps>(function TodoPanel(
-  { open, now, todos, inputRef, onClose, onAdd, onToggle, onEdit, onRemove },
+  { open, now, todos, inputRef, onClose, onAdd, onToggle, onEdit, onRemove, scheduled, onSchedule },
   ref,
 ) {
   const done = todos.filter((t) => t.completed).length
@@ -54,7 +57,15 @@ const TodoPanel = forwardRef<HTMLElement, TodoPanelProps>(function TodoPanel(
       {todos.length ? (
         <ul className="todo-list" aria-label="Today’s tasks">
           {todos.map((todo) => (
-            <TodoItem key={todo.id} todo={todo} onToggle={onToggle} onEdit={onEdit} onRemove={onRemove} />
+            <TodoItem
+              key={todo.id}
+              todo={todo}
+              onToggle={onToggle}
+              onEdit={onEdit}
+              onRemove={onRemove}
+              scheduledAt={scheduled[todo.id]}
+              onSchedule={onSchedule}
+            />
           ))}
         </ul>
       ) : (

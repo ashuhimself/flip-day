@@ -1024,6 +1024,46 @@ body {
   margin-top: 0;
 }
 
+.timebox-picks {
+  display: flex;
+  gap: 6px;
+  margin: -2px -2px 0;
+  padding: 2px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.timebox-pick {
+  flex: none;
+  max-width: 160px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--fill);
+  overflow: hidden;
+  font-size: 12px;
+  color: var(--color-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    color var(--ui-fast) var(--ease),
+    background-color var(--ui-fast) var(--ease);
+}
+
+.timebox-pick:hover {
+  color: var(--color-digit);
+  background: var(--hover);
+}
+
+.timebox-pick[aria-pressed='true'] {
+  color: var(--color-ink);
+  background: var(--color-digit);
+}
+
+.timebox-pick:focus-visible {
+  outline: 2px solid var(--focus-ring);
+}
+
 .timebox-when {
   display: flex;
   flex-direction: column;
@@ -1574,6 +1614,24 @@ body {
   .todo-actions {
     opacity: 0.7;
   }
+}
+
+.todo-scheduled {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: var(--fill);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-muted);
+  cursor: pointer;
+}
+
+.todo-scheduled:hover {
+  color: var(--color-digit);
 }
 
 .todo-action {

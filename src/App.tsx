@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import DateDisplay from './components/DateDisplay'
 import FlipClock from './components/FlipClock'
 import Music from './components/Music'
@@ -15,10 +15,10 @@ import { useNow } from './hooks/useNow'
 import { usePomodoro } from './hooks/usePomodoro'
 import { useSettings } from './hooks/useSettings'
 import { useTheme } from './hooks/useTheme'
-import { timeboxStatus, useTimeboxes } from './hooks/useTimeboxes'
-import { useTodos } from './hooks/useTodos'
+import { isOpenBlock, timeboxStatus, useTimeboxes } from './hooks/useTimeboxes'
+import { useTodos, type Todo } from './hooks/useTodos'
 import { STORAGE_KEYS, readJSON, writeJSON } from './lib/storage'
-import { getClockParts, minuteOfDay, toDateKey } from './lib/time'
+import { formatMinutes, getClockParts, minuteOfDay, toDateKey } from './lib/time'
 import { tzOf, zoneById, zonedParts } from './lib/timezones'
 
 function isTypingTarget(target: EventTarget | null) {
@@ -36,7 +36,7 @@ export default function App() {
   const timer = usePomodoro()
   const now = useNow(settings.showSeconds ? 'second' : 'minute')
   const dateKey = toDateKey(now)
-  const { todos, add, toggle, edit, remove } = useTodos(dateKey)
+  const { todos, add, toggle, complete, edit, remove } = useTodos(dateKey)
 
   // The first zone is the main clock; timeboxes follow its time and date.
   const [primaryId, ...extraZones] = settings.timeZones
@@ -46,6 +46,33 @@ export default function App() {
   const timeboxes = useTimeboxes(toDateKey(now, primaryZone))
   const minute = minuteOfDay(now, primaryZone)
   const boxStatus = timeboxStatus(timeboxes.boxes, minute, settings.showSeconds ? zonedParts(now, primaryZone).second : 0)
+
+  // Finishing a block planned from a task also ticks the task off.
+  const { finish: finishBox } = timeboxes
+  const finishBlock = useCallback(
+    (id: string) => {
+      const todoId = timeboxes.boxes.find((b) => b.id === id)?.todoId
+      finishBox(id)
+      if (todoId) complete(todoId)
+    },
+    [timeboxes.boxes, finishBox, complete],
+  )
+
+  // Start time of each task's unfinished block, for the badge in the todo list.
+  const scheduled = useMemo(() => {
+    const map: Record<string, string> = {}
+    for (const b of timeboxes.boxes) {
+      if (b.todoId && isOpenBlock(b, minute)) map[b.todoId] = formatMinutes(b.start, settings.hour12)
+    }
+    return map
+  }, [timeboxes.boxes, minute, settings.hour12])
+
+  // "Timebox it" on a task: open the Timebox panel with the task filled in.
+  const [scheduleRequest, setScheduleRequest] = useState<{ todo: Todo; n: number } | null>(null)
+  const scheduleTodo = useCallback((todo: Todo) => {
+    setScheduleRequest((r) => ({ todo, n: (r?.n ?? 0) + 1 }))
+    setTool('timebox')
+  }, [])
 
   const [panelOpen, setPanelOpen] = useState(() => readJSON(STORAGE_KEYS.panelOpen, false))
   const [tool, setTool] = useState<Tool | null>(null)
@@ -167,9 +194,11 @@ export default function App() {
           minute={minute}
           hour12={settings.hour12}
           zoneLabel={multiZone ? primaryCity : undefined}
+          todos={todos}
+          request={scheduleRequest}
           onAdd={timeboxes.add}
           onRemove={timeboxes.remove}
-          onFinish={timeboxes.finish}
+          onFinish={finishBlock}
         />
         <Music {...toolProps('music')} />
       </div>
@@ -185,7 +214,7 @@ export default function App() {
           boxes={timeboxes.boxes}
           boxStatus={boxStatus}
           minute={minute}
-          onFinishBox={timeboxes.finish}
+          onFinishBox={finishBlock}
         />
         <ThemeToggle theme={theme} onToggle={toggleTheme} />
       </div>
@@ -214,6 +243,8 @@ export default function App() {
         onToggle={toggle}
         onEdit={edit}
         onRemove={remove}
+        scheduled={scheduled}
+        onSchedule={scheduleTodo}
       />
     </main>
   )

@@ -89,6 +89,11 @@ export function useTodos(dateKey: string) {
     [mutate],
   )
 
+  const complete = useCallback(
+    (id: string) => mutate((todos) => todos.map((t) => (t.id === id ? { ...t, completed: true } : t))),
+    [mutate],
+  )
+
   const edit = useCallback(
     (id: string, text: string) => {
       const trimmed = text.trim()
@@ -101,5 +106,5 @@ export function useTodos(dateKey: string) {
 
   const remove = useCallback((id: string) => mutate((todos) => todos.filter((t) => t.id !== id)), [mutate])
 
-  return { todos: state.dateKey === dateKey ? state.todos : [], add, toggle, edit, remove }
+  return { todos: state.dateKey === dateKey ? state.todos : [], add, toggle, complete, edit, remove }
 }

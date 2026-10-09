@@ -1,5 +1,5 @@
 import { memo, useEffect, useRef, useState } from 'react'
-import { Check, Pencil, X } from 'lucide-react'
+import { CalendarClock, Check, Pencil, X } from 'lucide-react'
 import type { Todo } from '../../hooks/useTodos'
 
 interface TodoItemProps {
@@ -7,9 +7,12 @@ interface TodoItemProps {
   onToggle: (id: string) => void
   onEdit: (id: string, text: string) => void
   onRemove: (id: string) => void
+  /** Start time of the task's unfinished block, e.g. "3:30 PM". */
+  scheduledAt?: string
+  onSchedule: (todo: Todo) => void
 }
 
-function TodoItem({ todo, onToggle, onEdit, onRemove }: TodoItemProps) {
+function TodoItem({ todo, onToggle, onEdit, onRemove, scheduledAt, onSchedule }: TodoItemProps) {
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(todo.text)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -67,8 +70,32 @@ function TodoItem({ todo, onToggle, onEdit, onRemove }: TodoItemProps) {
         </span>
       )}
 
+      {!editing && scheduledAt && !todo.completed && (
+        <button
+          type="button"
+          className="todo-scheduled"
+          onClick={() => onSchedule(todo)}
+          aria-label={`Timeboxed at ${scheduledAt}`}
+          title="Open Timebox"
+        >
+          <CalendarClock size={11} strokeWidth={2} aria-hidden="true" />
+          {scheduledAt}
+        </button>
+      )}
+
       {!editing && (
         <div className="todo-actions">
+          {!todo.completed && !scheduledAt && (
+            <button
+              type="button"
+              className="todo-action"
+              onClick={() => onSchedule(todo)}
+              aria-label={`Timebox it: ${todo.text}`}
+              title="Timebox it"
+            >
+              <CalendarClock size={13} strokeWidth={1.75} aria-hidden="true" />
+            </button>
+          )}
           <button type="button" className="todo-action" onClick={startEditing} aria-label={`Edit: ${todo.text}`}>
             <Pencil size={13} strokeWidth={1.75} aria-hidden="true" />
           </button>
