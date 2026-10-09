@@ -1,20 +1,30 @@
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { Pause, PictureInPicture2, Play, RotateCcw } from 'lucide-react'
+import { Check, Pause, PictureInPicture2, Play, RotateCcw } from 'lucide-react'
 import { formatDuration, type PomodoroTimer } from '../hooks/usePomodoro'
 import { pipSupported, usePictureInPicture } from '../hooks/usePictureInPicture'
 import type { Theme } from '../hooks/useTheme'
+import { isOpenBlock, type Timebox, type TimeboxStatus } from '../hooks/useTimeboxes'
 import { STORAGE_KEYS, readJSON, writeJSON } from '../lib/storage'
+import { formatMinutes } from '../lib/time'
 import FlipClock from './FlipClock'
 import { MODES } from './Pomodoro'
+import { formatLeft } from './Timebox'
 
-export type PopOutView = 'clock' | 'pomodoro'
+export type PopOutView = 'clock' | 'pomodoro' | 'timebox'
+
+const VIEWS: [PopOutView, string][] = [
+  ['clock', 'Clock'],
+  ['pomodoro', 'Pomodoro'],
+  ['timebox', 'Timebox'],
+]
 
 // Window sizes per view; the clock needs more width with seconds on.
 const SIZES = {
   clock: { width: 440, height: 200 },
   clockSeconds: { width: 580, height: 200 },
   pomodoro: { width: 320, height: 240 },
+  timebox: { width: 340, height: 240 },
 }
 
 interface PopOutProps {
@@ -24,22 +34,39 @@ interface PopOutProps {
   timeZone: string
   theme: Theme
   timer: PomodoroTimer
+  boxes: Timebox[]
+  boxStatus: TimeboxStatus
+  /** Minutes after midnight on the main clock. */
+  minute: number
+  onFinishBox: (id: string) => void
 }
 
 /**
- * Pops the clock or the Pomodoro — one at a time — into an always-on-top
+ * Pops the clock, the Pomodoro or the timebox — one at a time — into an always-on-top
  * Picture-in-Picture window that stays visible over other apps and tabs.
  */
-export default function PopOut({ now, hour12, showSeconds, timeZone, theme, timer }: PopOutProps) {
+export default function PopOut({
+  now,
+  hour12,
+  showSeconds,
+  timeZone,
+  theme,
+  timer,
+  boxes,
+  boxStatus,
+  minute,
+  onFinishBox,
+}: PopOutProps) {
   const { pipWindow, open, close } = usePictureInPicture()
-  const [view, setView] = useState<PopOutView>(() =>
-    readJSON<PopOutView>(STORAGE_KEYS.popOut, 'clock') === 'pomodoro' ? 'pomodoro' : 'clock',
-  )
+  const [view, setView] = useState<PopOutView>(() => {
+    const saved = readJSON<PopOutView>(STORAGE_KEYS.popOut, 'clock')
+    return VIEWS.some(([v]) => v === saved) ? saved : 'clock'
+  })
   const supported = pipSupported()
 
   useEffect(() => writeJSON(STORAGE_KEYS.popOut, view), [view])
 
-  const sizeFor = (v: PopOutView) => (v === 'pomodoro' ? SIZES.pomodoro : showSeconds ? SIZES.clockSeconds : SIZES.clock)
+  const sizeFor = (v: PopOutView) => (v !== 'clock' ? SIZES[v] : showSeconds ? SIZES.clockSeconds : SIZES.clock)
 
   // The PiP window is a separate document: keep its theme in step.
   useEffect(() => {
@@ -82,7 +109,7 @@ export default function PopOut({ now, hour12, showSeconds, timeZone, theme, time
         createPortal(
           <div className="pip" data-view={view}>
             <div className="pip-switch segmented" role="radiogroup" aria-label="Show">
-              {(['clock', 'pomodoro'] as const).map((v) => (
+              {VIEWS.map(([v, name]) => (
                 <button
                   key={v}
                   type="button"
@@ -91,7 +118,7 @@ export default function PopOut({ now, hour12, showSeconds, timeZone, theme, time
                   className="segmented__option"
                   onClick={() => switchView(v)}
                 >
-                  {v === 'clock' ? 'Clock' : 'Pomodoro'}
+                  {name}
                 </button>
               ))}
             </div>
@@ -100,8 +127,10 @@ export default function PopOut({ now, hour12, showSeconds, timeZone, theme, time
               <div className="clock-wrap pip-clock" data-seconds={showSeconds || undefined}>
                 <FlipClock now={now} hour12={hour12} showSeconds={showSeconds} timeZone={timeZone} />
               </div>
-            ) : (
+            ) : view === 'pomodoro' ? (
               <PipPomodoro timer={timer} />
+            ) : (
+              <PipTimebox boxes={boxes} status={boxStatus} minute={minute} hour12={hour12} onFinish={onFinishBox} />
             )}
           </div>,
           pipWindow.document.body,
@@ -146,6 +175,55 @@ function PipPomodoro({ timer }: { timer: PomodoroTimer }) {
           <RotateCcw size={14} strokeWidth={2} aria-hidden="true" />
         </button>
       </div>
+    </div>
+  )
+}
+
+interface PipTimeboxProps {
+  boxes: Timebox[]
+  status: TimeboxStatus
+  minute: number
+  hour12: boolean
+  onFinish: (id: string) => void
+}
+
+/** The running block with its time left, or the next one coming up. */
+function PipTimebox({ boxes, status, minute, hour12, onFinish }: PipTimeboxProps) {
+  const { current, left, progress } = status
+  const upcoming = boxes.find((b) => isOpenBlock(b, minute) && b.id !== current?.id) ?? null
+  const block = current ?? upcoming
+
+  if (!block) {
+    return (
+      <div className="pip-pomo pip-box">
+        <p className="todo-eyebrow">Timebox</p>
+        <p className="todo-empty pip-box__empty">No blocks planned. Add one from the Timebox panel.</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="pip-pomo pip-box" data-active={!!current}>
+      <p className="todo-eyebrow pip-box__title" title={block.title}>
+        {current ? 'Now' : 'Next'} · {block.title}
+      </p>
+      <p className="pip-pomo__time pip-box__time" role="timer">
+        {current ? formatLeft(left) : formatMinutes(block.start, hour12)}
+      </p>
+      <div className="progress-track" aria-hidden="true">
+        <div className="progress-bar" style={{ transform: `scaleX(${current ? progress : 0})` }} />
+      </div>
+      <div className="pip-pomo__actions">
+        <button type="button" className="button button--primary" onClick={() => onFinish(block.id)}>
+          <Check size={15} strokeWidth={2} aria-hidden="true" />
+          Done
+        </button>
+      </div>
+      {current && upcoming && (
+        <p className="pip-box__next">
+          Next · {upcoming.title} at {formatMinutes(upcoming.start, hour12)}
+        </p>
+      )}
     </div>
   )
 }

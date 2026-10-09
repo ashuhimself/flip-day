@@ -1725,6 +1725,33 @@ body {
   width: 42px;
 }
 
+/* Timebox view reuses the Pomodoro layout; the title can be long. */
+.pip-box__title {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pip-box[data-active='false'] .pip-box__time {
+  opacity: 0.55;
+}
+
+.pip-box__empty {
+  margin: 12px 0 0;
+  text-align: center;
+}
+
+.pip-box__next {
+  max-width: 100%;
+  margin: 10px 0 0;
+  overflow: hidden;
+  font-size: 12px;
+  color: var(--color-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* Short pop-out windows: time on the left, controls on the right. */
 @media (max-height: 210px) {
   .pip-pomo {
@@ -1757,6 +1784,10 @@ body {
     grid-row: 3;
     grid-column: 1 / -1;
     margin-top: 10px;
+  }
+
+  .pip-box__next {
+    grid-column: 1 / -1;
   }
 }
 

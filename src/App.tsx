@@ -182,6 +182,10 @@ export default function App() {
           timeZone={primaryZone}
           theme={theme}
           timer={timer}
+          boxes={timeboxes.boxes}
+          boxStatus={boxStatus}
+          minute={minute}
+          onFinishBox={timeboxes.finish}
         />
         <ThemeToggle theme={theme} onToggle={toggleTheme} />
       </div>
