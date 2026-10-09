@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { CalendarClock, Check, Pause, Play, Plus, Timer, X } from 'lucide-react'
-import { formatDuration, type PomodoroTimer } from '../hooks/usePomodoro'
+import { CalendarClock, Check, Plus, X } from 'lucide-react'
 import { MAX_OPEN, isOpenBlock, type Timebox as TimeboxItem, type TimeboxStatus } from '../hooks/useTimeboxes'
 import type { Todo } from '../hooks/useTodos'
 import { playChime, primeAudio } from '../lib/chime'
@@ -28,7 +27,6 @@ interface TimeboxProps {
   onRemove: (id: string) => void
   onFinish: (id: string) => void
   onExtend: (id: string, minutes: number) => void
-  timer: PomodoroTimer
 }
 
 /** 42 → "42m", 95 → "1h 35m" */
@@ -53,27 +51,6 @@ function suggestStart(boxes: TimeboxItem[], minute: number): number {
   const roundedNow = Math.ceil(minute / 5) * 5
   const busyUntil = boxes.reduce((end, b) => Math.max(end, isOpenBlock(b, minute) ? b.start + b.duration : 0), 0)
   return Math.min(DAY - 5, Math.max(roundedNow, busyUntil))
-}
-
-/** Starts a focus session for the running block; shows its countdown and pauses/resumes it once going. */
-export function FocusButton({ timer, className = 'chip-button' }: { timer: PomodoroTimer; className?: string }) {
-  const focusing = timer.mode === 'focus' && timer.status !== 'idle'
-  const running = focusing && timer.status === 'running'
-  const label = !focusing ? 'Start a 25-minute focus session' : running ? 'Pause focus session' : 'Resume focus session'
-  const Icon = running ? Pause : focusing ? Play : Timer
-  return (
-    <button
-      type="button"
-      className={className}
-      data-on={focusing || undefined}
-      onClick={() => (!focusing ? timer.focus() : running ? timer.pause() : timer.start())}
-      aria-label={label}
-      title={label}
-    >
-      <Icon size={13} strokeWidth={2} aria-hidden="true" />
-      {focusing ? formatDuration(timer.remaining) : 'Focus'}
-    </button>
-  )
 }
 
 /** "+5m" and "+15m" for the running block. */
@@ -111,7 +88,6 @@ export default function Timebox({
   onRemove,
   onFinish,
   onExtend,
-  timer,
 }: TimeboxProps) {
   const [title, setTitle] = useState('')
   // The task the title was picked from; cleared once the title is edited away from it.
@@ -331,7 +307,6 @@ export default function Timebox({
                       <div className="progress-bar" style={{ transform: `scaleX(${status.progress})` }} />
                     </div>
                     <div className="timebox-item__extras">
-                      <FocusButton timer={timer} />
                       <ExtendButtons id={b.id} onExtend={onExtend} />
                     </div>
                   </>
@@ -355,11 +330,10 @@ interface TimeboxNowProps {
   hour12: boolean
   onOpen: () => void
   onExtend: (id: string, minutes: number) => void
-  timer: PomodoroTimer
 }
 
 /** Up to two unfinished blocks as cards under the clock: the running one and the next. */
-export function TimeboxNow({ boxes, status, minute, hour12, onOpen, onExtend, timer }: TimeboxNowProps) {
+export function TimeboxNow({ boxes, status, minute, hour12, onOpen, onExtend }: TimeboxNowProps) {
   const open = boxes.filter((b) => isOpenBlock(b, minute)).slice(0, MAX_OPEN)
   if (!open.length) return null
 
@@ -394,7 +368,6 @@ export function TimeboxNow({ boxes, status, minute, hour12, onOpen, onExtend, ti
             )}
             {active && (
               <span className="timebox-now__actions">
-                <FocusButton timer={timer} />
                 <ExtendButtons id={b.id} onExtend={onExtend} />
               </span>
             )}

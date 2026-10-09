@@ -9,7 +9,7 @@ import { STORAGE_KEYS, readJSON, writeJSON } from '../lib/storage'
 import { formatMinutes } from '../lib/time'
 import FlipClock from './FlipClock'
 import { MODES } from './Pomodoro'
-import { ExtendButtons, FocusButton, formatLeft } from './Timebox'
+import { ExtendButtons, formatLeft } from './Timebox'
 
 export type PopOutView = 'clock' | 'pomodoro' | 'timebox'
 
@@ -137,7 +137,6 @@ export default function PopOut({
                 status={boxStatus}
                 minute={minute}
                 hour12={hour12}
-                timer={timer}
                 onFinish={onFinishBox}
                 onExtend={onExtendBox}
               />
@@ -194,13 +193,12 @@ interface PipTimeboxProps {
   status: TimeboxStatus
   minute: number
   hour12: boolean
-  timer: PomodoroTimer
   onFinish: (id: string) => void
   onExtend: (id: string, minutes: number) => void
 }
 
-/** The running block with its time left (and a focus session in it), or the next one coming up. */
-function PipTimebox({ boxes, status, minute, hour12, timer, onFinish, onExtend }: PipTimeboxProps) {
+/** The running block with its time left, or the next one coming up. */
+function PipTimebox({ boxes, status, minute, hour12, onFinish, onExtend }: PipTimeboxProps) {
   const { current, left, progress } = status
   const upcoming = boxes.find((b) => isOpenBlock(b, minute) && b.id !== current?.id) ?? null
   const block = current ?? upcoming
@@ -230,7 +228,6 @@ function PipTimebox({ boxes, status, minute, hour12, timer, onFinish, onExtend }
           <Check size={15} strokeWidth={2} aria-hidden="true" />
           Done
         </button>
-        {current && <FocusButton timer={timer} className="button pip-box__focus" />}
       </div>
       {current && (
         <div className="pip-box__extend">

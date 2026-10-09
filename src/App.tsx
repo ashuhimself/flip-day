@@ -229,7 +229,6 @@ export default function App() {
           hour12={settings.hour12}
           onOpen={() => setTool('timebox')}
           onExtend={timeboxes.extend}
-          timer={timer}
         />
       </div>
 
@@ -248,7 +247,6 @@ export default function App() {
           onRemove={timeboxes.remove}
           onFinish={finishBlock}
           onExtend={timeboxes.extend}
-          timer={timer}
         />
         <Music {...toolProps('music')} />
         <Summary {...toolProps('summary')} todayKey={dateKey} />

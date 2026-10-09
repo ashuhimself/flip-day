@@ -1266,14 +1266,14 @@ body {
   outline-offset: -2px;
 }
 
-/* Focus and extend: above the stretched button. */
+/* +5m / +15m: above the stretched button. */
 .timebox-now__actions {
   position: relative;
   display: flex;
   gap: 6px;
 }
 
-/* Small pill buttons: Focus, +5m, +15m. */
+/* Small pill buttons: +5m, +15m. */
 .chip-button {
   display: inline-flex;
   flex: none;
@@ -1296,11 +1296,6 @@ body {
 .chip-button:hover {
   color: var(--color-digit);
   background: var(--hover);
-}
-
-.chip-button[data-on] {
-  color: var(--color-ink);
-  background: var(--color-digit);
 }
 
 .timebox-now[data-active='true'] {
@@ -1875,12 +1870,6 @@ body {
 
 .pip-box[data-active='false'] .pip-box__time {
   opacity: 0.55;
-}
-
-.pip-box__focus {
-  flex: none;
-  min-width: 96px;
-  font-variant-numeric: tabular-nums;
 }
 
 .pip-box__extend {
