@@ -1096,6 +1096,12 @@ body {
   gap: 8px;
 }
 
+.timebox-times {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
 .timebox-start {
   display: flex;
   align-items: center;
@@ -1112,6 +1118,14 @@ body {
   font-variant-numeric: tabular-nums;
   color: var(--color-digit);
   outline: none;
+}
+
+.timebox-start input[aria-invalid] {
+  color: var(--danger);
+}
+
+.timebox-start input:disabled {
+  opacity: 0.5;
 }
 
 .timebox-start input:focus-visible {

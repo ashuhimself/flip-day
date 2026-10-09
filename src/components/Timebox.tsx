@@ -129,17 +129,26 @@ export default function Timebox({
 
   const startMinutes = fromInput(start)
   const end = startMinutes == null ? null : Math.min(DAY, startMinutes + duration)
+  const badEnd = duration <= 0
+
+  // Typing an end time sets a custom length; changing the start keeps the length.
+  const changeEnd = (value: string) => {
+    const e = fromInput(value)
+    if (e != null && startMinutes != null) setDuration((e === 0 ? DAY : e) - startMinutes)
+  }
   const overlap =
     startMinutes == null || end == null
       ? undefined
-      : boxes.find((b) => !b.done && b.start < end && startMinutes < b.start + b.duration)
+      : badEnd
+        ? undefined
+        : boxes.find((b) => !b.done && b.start < end && startMinutes < b.start + b.duration)
 
   const submit = () => {
     if (full) {
       setAttempts((n) => n + 1)
       return
     }
-    if (!title.trim() || startMinutes == null) return
+    if (!title.trim() || startMinutes == null || badEnd) return
     primeAudio()
     onAdd(title, startMinutes, duration, todoId ?? undefined)
     setTitle('')
@@ -209,10 +218,23 @@ export default function Timebox({
         )}
 
         <div className="timebox-when">
-          <label className="timebox-start">
-            <span className="settings-label">Start</span>
-            <input type="time" value={start} step={300} onChange={(e) => setStart(e.target.value)} required />
-          </label>
+          <div className="timebox-times">
+            <label className="timebox-start">
+              <span className="settings-label">Start</span>
+              <input type="time" value={start} step={300} onChange={(e) => setStart(e.target.value)} required />
+            </label>
+            <label className="timebox-start">
+              <span className="settings-label">End</span>
+              <input
+                type="time"
+                value={end == null ? '' : toInput(end % DAY)}
+                step={300}
+                onChange={(e) => changeEnd(e.target.value)}
+                disabled={startMinutes == null}
+                aria-invalid={badEnd || undefined}
+              />
+            </label>
+          </div>
           <div className="segmented timebox-durations" role="radiogroup" aria-label="Length">
             {DURATIONS.map((d) => (
               <button
@@ -241,19 +263,21 @@ export default function Timebox({
           </p>
         )}
 
-        <p className="timebox-hint" data-warn={!!overlap || undefined} hidden={full}>
+        <p className="timebox-hint" data-warn={!!overlap || badEnd || undefined} hidden={full}>
           {startMinutes == null || end == null
             ? 'Pick a start time.'
-            : overlap
-              ? `Overlaps “${overlap.title}”`
-              : `${formatMinutes(startMinutes, hour12)} – ${formatMinutes(end, hour12)}`}
+            : badEnd
+              ? 'End must be after the start.'
+              : overlap
+                ? `Overlaps “${overlap.title}”`
+                : `${formatLeft(duration)} · ${formatMinutes(startMinutes, hour12)} – ${formatMinutes(end, hour12)}`}
         </p>
 
         <button
           type="submit"
           className="button button--primary"
           data-blocked={full || undefined}
-          disabled={!full && (!title.trim() || startMinutes == null)}
+          disabled={!full && (!title.trim() || startMinutes == null || badEnd)}
         >
           Add block
         </button>
