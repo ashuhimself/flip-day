@@ -113,7 +113,7 @@ body {
   inset: 0;
 }
 
-/* The full viewport above the bottom dock (timeline and block cards), which
+/* The full viewport above the bottom dock (the block cards), which
    App measures into --dock-space. Popovers float above and never shift it. */
 .stage {
   position: absolute;
@@ -474,10 +474,6 @@ body {
     align-items: stretch;
     width: calc(100vw - 2 * var(--gutter));
     max-width: none;
-  }
-
-  .chrome--bottom-center .timeline {
-    width: 100%;
   }
 
   /* Popovers open from the left edge of the toolbar so none run off-screen. */
@@ -1305,62 +1301,6 @@ body {
 .chip-button[data-on] {
   color: var(--color-ink);
   background: var(--color-digit);
-}
-
-/* ─── Day timeline ───────────────────────────────────────────────────────── */
-
-.timeline {
-  display: block;
-  width: min(560px, calc(100vw - 2 * var(--gutter) - 2 * 52px));
-  padding: 6px 0 0;
-  cursor: pointer;
-}
-
-.timeline__track {
-  position: relative;
-  display: block;
-  height: 6px;
-  border-radius: 3px;
-  background: var(--track);
-}
-
-.timeline__block {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  min-width: 3px;
-  border-radius: 3px;
-  background: var(--color-muted);
-  box-shadow: 0 0 0 2px var(--color-ink);
-  transition: background-color var(--ui) var(--ease);
-}
-
-.timeline__block[data-state='now'] {
-  background: var(--color-digit);
-}
-
-.timeline__block[data-state='done'] {
-  background: var(--color-faint);
-  opacity: 0.6;
-}
-
-.timeline__now {
-  position: absolute;
-  top: -5px;
-  bottom: -5px;
-  width: 2px;
-  margin-left: -1px;
-  border-radius: 1px;
-  background: var(--color-digit);
-}
-
-.timeline__labels {
-  display: flex;
-  justify-content: space-between;
-  margin-top: 7px;
-  font-size: 11px;
-  font-variant-numeric: tabular-nums;
-  color: var(--color-faint);
 }
 
 .timebox-now[data-active='true'] {

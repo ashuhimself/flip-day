@@ -6,7 +6,6 @@ import Pomodoro from './components/Pomodoro'
 import PopOut from './components/PopOut'
 import Settings from './components/Settings'
 import Summary from './components/Summary'
-import Timeline from './components/Timeline'
 import ThemeToggle from './components/ThemeToggle'
 import Timebox, { TimeboxNow } from './components/Timebox'
 import TodoTrigger from './components/TodoTrigger'
@@ -100,7 +99,7 @@ export default function App() {
   const [tool, setTool] = useState<Tool | null>(null)
   const idle = useIdle(3500)
 
-  // Room taken by the bottom dock (timeline and block cards), so the clock centers above it.
+  // Room taken by the bottom dock (block cards), so the clock centers above it.
   const dockRef = useRef<HTMLDivElement>(null)
   const [dockSpace, setDockSpace] = useState(0)
   useEffect(() => {
@@ -223,13 +222,6 @@ export default function App() {
       </div>
 
       <div className="chrome chrome--bottom-center" data-overlay="tool" ref={dockRef}>
-        <Timeline
-          boxes={timeboxes.boxes}
-          minute={minute}
-          currentId={boxStatus.current?.id ?? null}
-          hour12={settings.hour12}
-          onOpen={() => setTool('timebox')}
-        />
         <TimeboxNow
           boxes={timeboxes.boxes}
           status={boxStatus}
