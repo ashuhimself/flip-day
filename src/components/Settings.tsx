@@ -1,6 +1,7 @@
-import { useId } from 'react'
+import { useId, useState } from 'react'
 import { Check, Settings2 } from 'lucide-react'
 import type { Settings as SettingsValues } from '../hooks/useSettings'
+import { notifySupported, requestNotifications } from '../lib/notify'
 import { LOCAL_ZONE, MAX_ZONES, ZONES } from '../lib/timezones'
 import ToolPopover from './ToolPopover'
 
@@ -12,6 +13,15 @@ interface SettingsProps {
 }
 
 export default function Settings({ open, settings, onOpenChange, onChange }: SettingsProps) {
+  const [blocked, setBlocked] = useState(false)
+
+  const setNotifications = async (on: boolean) => {
+    if (!on) return onChange('notifications', false)
+    const allowed = await requestNotifications()
+    setBlocked(!allowed)
+    if (allowed) onChange('notifications', true)
+  }
+
   return (
     <ToolPopover
       open={open}
@@ -49,6 +59,18 @@ export default function Settings({ open, settings, onOpenChange, onChange }: Set
         ]}
         onChange={(v) => onChange('showDate', v)}
       />
+      {notifySupported() && (
+        <Option
+          label="Notifications"
+          value={settings.notifications}
+          choices={[
+            [true, 'On'],
+            [false, 'Off'],
+          ]}
+          onChange={setNotifications}
+        />
+      )}
+      {blocked && <p className="field-error">Notifications are blocked. Allow them in your browser’s site settings.</p>}
       <ZonePicker value={settings.timeZones} onChange={(v) => onChange('timeZones', v)} />
     </ToolPopover>
   )

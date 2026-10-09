@@ -5,6 +5,8 @@ import Music from './components/Music'
 import Pomodoro from './components/Pomodoro'
 import PopOut from './components/PopOut'
 import Settings from './components/Settings'
+import Summary from './components/Summary'
+import Timeline from './components/Timeline'
 import ThemeToggle from './components/ThemeToggle'
 import Timebox, { TimeboxNow } from './components/Timebox'
 import TodoTrigger from './components/TodoTrigger'
@@ -17,6 +19,7 @@ import { useSettings } from './hooks/useSettings'
 import { useTheme } from './hooks/useTheme'
 import { isOpenBlock, timeboxStatus, useTimeboxes } from './hooks/useTimeboxes'
 import { useTodos, type Todo } from './hooks/useTodos'
+import { notify, setNotificationsEnabled } from './lib/notify'
 import { STORAGE_KEYS, readJSON, writeJSON } from './lib/storage'
 import { formatMinutes, getClockParts, minuteOfDay, toDateKey } from './lib/time'
 import { tzOf, zoneById, zonedParts } from './lib/timezones'
@@ -27,7 +30,7 @@ function isTypingTarget(target: EventTarget | null) {
 }
 
 /** Top-left / bottom-left popovers. Only one is open at a time. */
-type Tool = 'settings' | 'pomodoro' | 'timebox' | 'music'
+type Tool = 'settings' | 'pomodoro' | 'timebox' | 'music' | 'summary'
 
 export default function App() {
   const [settings, updateSetting] = useSettings()
@@ -36,7 +39,7 @@ export default function App() {
   const timer = usePomodoro()
   const now = useNow(settings.showSeconds ? 'second' : 'minute')
   const dateKey = toDateKey(now)
-  const { todos, add, toggle, complete, edit, remove } = useTodos(dateKey)
+  const { todos, add, toggle, complete, edit, remove, leftover, carryOver, dismissLeftover } = useTodos(dateKey)
 
   // The first zone is the main clock; timeboxes follow its time and date.
   const [primaryId, ...extraZones] = settings.timeZones
@@ -57,6 +60,25 @@ export default function App() {
     },
     [timeboxes.boxes, finishBox, complete],
   )
+
+  // Desktop notifications as blocks start, end and come up next.
+  useEffect(() => setNotificationsEnabled(settings.notifications), [settings.notifications])
+  const lastMinute = useRef(minute)
+  useEffect(() => {
+    const prev = lastMinute.current
+    lastMinute.current = minute
+    // Only for the clock moving forward a little (not a new day or waking from sleep).
+    if (minute <= prev || minute - prev > 5) return
+    const crossed = (m: number) => prev < m && m <= minute
+    const fmt = (m: number) => formatMinutes(m, settings.hour12)
+    for (const b of timeboxes.boxes) {
+      if (b.done) continue
+      const end = b.start + b.duration
+      if (crossed(b.start)) notify(`Now: ${b.title}`, `Until ${fmt(end)}`)
+      else if (crossed(end)) notify(`Block ended: ${b.title}`)
+      else if (crossed(b.start - 5)) notify(`Next: ${b.title} in 5 min`, `Starts at ${fmt(b.start)}`)
+    }
+  }, [minute, timeboxes.boxes, settings.hour12])
 
   // Start time of each task's unfinished block, for the badge in the todo list.
   const scheduled = useMemo(() => {
@@ -123,7 +145,8 @@ export default function App() {
     return () => document.removeEventListener('pointerdown', onPointerDown)
   }, [panelOpen])
 
-  // Keyboard: Escape closes the top-most layer, T toggles the panel.
+  // Keyboard: Escape closes the top-most layer, T toggles the panel, B the Timebox,
+  // P starts or pauses the Pomodoro, F starts a focus session, D finishes the running block.
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -132,14 +155,18 @@ export default function App() {
         return
       }
       if (e.metaKey || e.ctrlKey || e.altKey || e.repeat || isTypingTarget(e.target)) return
-      if (e.key === 't' || e.key === 'T') {
-        e.preventDefault()
-        togglePanel()
-      }
+      const key = e.key.toLowerCase()
+      if (key === 't') togglePanel()
+      else if (key === 'b') setTool((t) => (t === 'timebox' ? null : 'timebox'))
+      else if (key === 'p') (timer.status === 'running' ? timer.pause : timer.start)()
+      else if (key === 'f') timer.focus()
+      else if (key === 'd' && boxStatus.current) finishBlock(boxStatus.current.id)
+      else return
+      e.preventDefault()
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [tool, panelOpen, closePanel, togglePanel])
+  }, [tool, panelOpen, closePanel, togglePanel, timer, boxStatus.current, finishBlock])
 
   // Show the time in the tab title too.
   const { hours, minutes, meridiem } = getClockParts(now, settings.hour12, primaryZone)
@@ -176,12 +203,21 @@ export default function App() {
       </div>
 
       <div className="chrome chrome--bottom-center" data-overlay="tool">
+        <Timeline
+          boxes={timeboxes.boxes}
+          minute={minute}
+          currentId={boxStatus.current?.id ?? null}
+          hour12={settings.hour12}
+          onOpen={() => setTool('timebox')}
+        />
         <TimeboxNow
           boxes={timeboxes.boxes}
           status={boxStatus}
           minute={minute}
           hour12={settings.hour12}
           onOpen={() => setTool('timebox')}
+          onExtend={timeboxes.extend}
+          timer={timer}
         />
       </div>
 
@@ -199,8 +235,11 @@ export default function App() {
           onAdd={timeboxes.add}
           onRemove={timeboxes.remove}
           onFinish={finishBlock}
+          onExtend={timeboxes.extend}
+          timer={timer}
         />
         <Music {...toolProps('music')} />
+        <Summary {...toolProps('summary')} todayKey={dateKey} />
       </div>
 
       <div className="chrome chrome--top-right" data-overlay="tool" data-hidden={chromeHidden}>
@@ -215,6 +254,7 @@ export default function App() {
           boxStatus={boxStatus}
           minute={minute}
           onFinishBox={finishBlock}
+          onExtendBox={timeboxes.extend}
         />
         <ThemeToggle theme={theme} onToggle={toggleTheme} />
       </div>
@@ -245,6 +285,9 @@ export default function App() {
         onRemove={remove}
         scheduled={scheduled}
         onSchedule={scheduleTodo}
+        leftover={leftover}
+        onCarryOver={carryOver}
+        onDismissLeftover={dismissLeftover}
       />
     </main>
   )

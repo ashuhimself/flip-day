@@ -11,6 +11,8 @@ export const STORAGE_KEYS = {
   music: 'flipclock:music:v1',
   popOut: 'flipclock:pop-out:v1',
   timeboxes: 'flipclock:timeboxes:v1',
+  focusLog: 'flipclock:focus-log:v1',
+  carryOver: 'flipclock:carry-over:v1',
 } as const
 
 export function readJSON<T>(key: string, fallback: T): T {

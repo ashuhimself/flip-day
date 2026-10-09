@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { STORAGE_KEYS, readJSON, writeJSON } from '../lib/storage'
 
 export interface Todo {
@@ -46,9 +46,32 @@ function newId(): string {
     : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`
 }
 
+export interface Leftover {
+  /** The earlier day the tasks were left on. */
+  from: string
+  todos: Todo[]
+}
+
+/**
+ * Unfinished tasks from the most recent earlier day that has any tasks, unless
+ * they were already moved or dismissed for `dateKey`.
+ */
+function findLeftover(dateKey: string): Leftover | null {
+  if (readJSON<string | null>(STORAGE_KEYS.carryOver, null) === dateKey) return null
+  const store = readStore()
+  const from = Object.keys(store)
+    .filter((k) => k < dateKey && Array.isArray(store[k]) && store[k].length)
+    .sort()
+    .pop()
+  if (!from) return null
+  const todos = store[from].filter(isTodo).filter((t) => !t.completed)
+  return todos.length ? { from, todos } : null
+}
+
 /**
  * Today's todo list. Tasks belong to the local date they were created on;
- * when `dateKey` rolls over the list starts fresh and nothing carries forward.
+ * when `dateKey` rolls over the list starts fresh, and yesterday's unfinished
+ * tasks are offered as a `leftover` to move over.
  */
 export function useTodos(dateKey: string) {
   const [state, setState] = useState(() => ({ dateKey, todos: loadDay(dateKey) }))
@@ -106,5 +129,38 @@ export function useTodos(dateKey: string) {
 
   const remove = useCallback((id: string) => mutate((todos) => todos.filter((t) => t.id !== id)), [mutate])
 
-  return { todos: state.dateKey === dateKey ? state.todos : [], add, toggle, complete, edit, remove }
+  // Bumped when the leftover is handled, to look again.
+  const [handled, setHandled] = useState(0)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const leftover = useMemo(() => findLeftover(dateKey), [dateKey, handled])
+
+  /** Move the leftover tasks to today, taking them off the earlier day. */
+  const carryOver = useCallback(() => {
+    if (!leftover) return
+    const ids = new Set(leftover.todos.map((t) => t.id))
+    const store = readStore()
+    store[leftover.from] = (store[leftover.from] ?? []).filter((t) => !ids.has(t.id))
+    if (!store[leftover.from].length) delete store[leftover.from]
+    writeJSON(STORAGE_KEYS.todos, store)
+    mutate((todos) => [...todos, ...leftover.todos.filter((t) => !todos.some((x) => x.id === t.id))])
+    writeJSON(STORAGE_KEYS.carryOver, dateKey)
+    setHandled((n) => n + 1)
+  }, [leftover, dateKey, mutate])
+
+  const dismissLeftover = useCallback(() => {
+    writeJSON(STORAGE_KEYS.carryOver, dateKey)
+    setHandled((n) => n + 1)
+  }, [dateKey])
+
+  return {
+    todos: state.dateKey === dateKey ? state.todos : [],
+    add,
+    toggle,
+    complete,
+    edit,
+    remove,
+    leftover,
+    carryOver,
+    dismissLeftover,
+  }
 }

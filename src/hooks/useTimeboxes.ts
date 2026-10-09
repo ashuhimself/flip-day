@@ -126,5 +126,13 @@ export function useTimeboxes(dateKey: string) {
     setState((st) => ({ ...st, boxes: st.boxes.map((b) => (b.id === id ? { ...b, done: true } : b)) }))
   }, [])
 
-  return { boxes: state.dateKey === dateKey ? state.boxes : [], add, remove, finish }
+  /** Give a block more time, never past midnight. */
+  const extend = useCallback((id: string, minutes: number) => {
+    setState((st) => ({
+      ...st,
+      boxes: st.boxes.map((b) => (b.id === id ? { ...b, duration: Math.min(DAY - b.start, b.duration + minutes) } : b)),
+    }))
+  }, [])
+
+  return { boxes: state.dateKey === dateKey ? state.boxes : [], add, remove, finish, extend }
 }

@@ -1,6 +1,6 @@
 import { forwardRef, type RefObject } from 'react'
 import { X } from 'lucide-react'
-import type { Todo } from '../../hooks/useTodos'
+import type { Leftover, Todo } from '../../hooks/useTodos'
 import { formatMonthDay } from '../../lib/time'
 import TodoInput from './TodoInput'
 import TodoItem from './TodoItem'
@@ -19,10 +19,38 @@ interface TodoPanelProps {
   /** Start times of unfinished blocks, by the task they were planned from. */
   scheduled: Record<string, string>
   onSchedule: (todo: Todo) => void
+  leftover: Leftover | null
+  onCarryOver: () => void
+  onDismissLeftover: () => void
+}
+
+const shortDay = new Intl.DateTimeFormat(undefined, { weekday: 'long' })
+
+/** "yesterday", or the weekday for older days. */
+function dayLabel(from: string, now: Date): string {
+  const y = new Date(now)
+  y.setDate(y.getDate() - 1)
+  const key = `${y.getFullYear()}-${String(y.getMonth() + 1).padStart(2, '0')}-${String(y.getDate()).padStart(2, '0')}`
+  return from === key ? 'yesterday' : shortDay.format(new Date(`${from}T12:00:00`))
 }
 
 const TodoPanel = forwardRef<HTMLElement, TodoPanelProps>(function TodoPanel(
-  { open, now, todos, inputRef, onClose, onAdd, onToggle, onEdit, onRemove, scheduled, onSchedule },
+  {
+    open,
+    now,
+    todos,
+    inputRef,
+    onClose,
+    onAdd,
+    onToggle,
+    onEdit,
+    onRemove,
+    scheduled,
+    onSchedule,
+    leftover,
+    onCarryOver,
+    onDismissLeftover,
+  },
   ref,
 ) {
   const done = todos.filter((t) => t.completed).length
@@ -53,6 +81,23 @@ const TodoPanel = forwardRef<HTMLElement, TodoPanelProps>(function TodoPanel(
       </header>
 
       <TodoInput ref={inputRef} onAdd={onAdd} />
+
+      {leftover && (
+        <div className="carry-over" role="status">
+          <p className="carry-over__text">
+            {leftover.todos.length} unfinished from {dayLabel(leftover.from, now)}
+            <span className="carry-over__names">{leftover.todos.map((t) => t.text).join(' · ')}</span>
+          </p>
+          <div className="carry-over__actions">
+            <button type="button" className="button button--primary" onClick={onCarryOver}>
+              Move to today
+            </button>
+            <button type="button" className="button" onClick={onDismissLeftover}>
+              Dismiss
+            </button>
+          </div>
+        </div>
+      )}
 
       {todos.length ? (
         <ul className="todo-list" aria-label="Today’s tasks">

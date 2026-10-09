@@ -452,6 +452,9 @@ body {
   bottom: max(var(--gutter), env(safe-area-inset-bottom));
   left: 50%;
   translate: -50% 0;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
   width: max-content;
   max-width: calc(100vw - 2 * var(--gutter) - 2 * 52px);
 }
@@ -1182,6 +1185,13 @@ body {
   margin: 6px 4px 0 0;
 }
 
+.timebox-item__extras {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+
 .timebox-empty {
   padding: 16px 2px 2px;
 }
@@ -1189,6 +1199,7 @@ body {
 /* Up to two cards under the clock: the running block and the next one. */
 .timebox-now-row {
   display: flex;
+  align-items: flex-start;
   justify-content: center;
   gap: 10px;
 }
@@ -1219,6 +1230,134 @@ body {
 .timebox-now:hover {
   border-color: var(--border-strong);
   transform: translateY(-2px);
+}
+
+.timebox-now__open {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  cursor: pointer;
+}
+
+.timebox-now__open:focus-visible {
+  outline-offset: -2px;
+}
+
+/* Focus and extend: above the stretched button, shown on hover. */
+.timebox-now__actions {
+  position: relative;
+  display: flex;
+  gap: 6px;
+  max-height: 0;
+  margin-top: -10px;
+  overflow: hidden;
+  opacity: 0;
+  transition:
+    max-height var(--ui) var(--ease),
+    margin var(--ui) var(--ease),
+    opacity var(--ui-fast) var(--ease);
+}
+
+.timebox-now:hover .timebox-now__actions,
+.timebox-now:focus-within .timebox-now__actions,
+.timebox-now__actions:has([data-on]) {
+  max-height: 40px;
+  margin-top: 0;
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .timebox-now__actions {
+    max-height: 40px;
+    margin-top: 0;
+    opacity: 1;
+  }
+}
+
+/* Small pill buttons: Focus, +5m, +15m. */
+.chip-button {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 5px;
+  height: 26px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: var(--fill);
+  font-size: 12px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-muted);
+  cursor: pointer;
+  transition:
+    color var(--ui-fast) var(--ease),
+    background-color var(--ui-fast) var(--ease);
+}
+
+.chip-button:hover {
+  color: var(--color-digit);
+  background: var(--hover);
+}
+
+.chip-button[data-on] {
+  color: var(--color-ink);
+  background: var(--color-digit);
+}
+
+/* ─── Day timeline ───────────────────────────────────────────────────────── */
+
+.timeline {
+  display: block;
+  width: min(560px, calc(100vw - 2 * var(--gutter) - 2 * 52px));
+  padding: 6px 0 0;
+  cursor: pointer;
+}
+
+.timeline__track {
+  position: relative;
+  display: block;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--track);
+}
+
+.timeline__block {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  min-width: 3px;
+  border-radius: 3px;
+  background: var(--color-muted);
+  box-shadow: 0 0 0 2px var(--color-ink);
+  transition: background-color var(--ui) var(--ease);
+}
+
+.timeline__block[data-state='now'] {
+  background: var(--color-digit);
+}
+
+.timeline__block[data-state='done'] {
+  background: var(--color-faint);
+  opacity: 0.6;
+}
+
+.timeline__now {
+  position: absolute;
+  top: -5px;
+  bottom: -5px;
+  width: 2px;
+  margin-left: -1px;
+  border-radius: 1px;
+  background: var(--color-digit);
+}
+
+.timeline__labels {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 7px;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-faint);
 }
 
 .timebox-now[data-active='true'] {
@@ -1795,6 +1934,18 @@ body {
   opacity: 0.55;
 }
 
+.pip-box__focus {
+  flex: none;
+  min-width: 96px;
+  font-variant-numeric: tabular-nums;
+}
+
+.pip-box__extend {
+  display: flex;
+  gap: 6px;
+  margin-top: 10px;
+}
+
 .pip-box__empty {
   margin: 12px 0 0;
   text-align: center;
@@ -1847,6 +1998,137 @@ body {
   .pip-box__next {
     grid-column: 1 / -1;
   }
+}
+
+/* ─── Carry over ─────────────────────────────────────────────────────────── */
+
+.carry-over {
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--fill-subtle);
+  animation: item-in var(--ui) var(--ease);
+}
+
+.carry-over__text {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.carry-over__names {
+  display: block;
+  margin-top: 3px;
+  overflow: hidden;
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--color-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.carry-over__actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+/* ─── Summary ────────────────────────────────────────────────────────────── */
+
+.summary .popover {
+  width: min(300px, calc(100vw - 2 * var(--gutter)));
+}
+
+.summary-streak {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--color-faint);
+}
+
+.summary-streak[data-on='true'] {
+  color: var(--color-digit);
+}
+
+.summary-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin: 0;
+}
+
+.summary-stats div {
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--fill);
+}
+
+.summary-stats dt {
+  font-size: 11px;
+  color: var(--color-muted);
+}
+
+.summary-stats dd {
+  margin: 4px 0 0;
+  font-size: 22px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+.summary-stats dd span {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-faint);
+}
+
+.summary-chart-title {
+  display: block;
+  margin: 16px 2px 8px;
+}
+
+.summary-chart {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+  height: 92px;
+}
+
+.summary-day {
+  display: grid;
+  grid-template-rows: 1fr auto;
+  justify-items: center;
+  border-radius: 6px;
+  transition: background-color var(--ui-fast) var(--ease);
+}
+
+.summary-day:hover {
+  background: var(--fill);
+}
+
+/* Bars grow from the baseline; an empty day keeps a hairline so the week reads. */
+.summary-day__bar {
+  align-self: end;
+  width: min(18px, 70%);
+  min-height: 2px;
+  border-radius: 4px 4px 1px 1px;
+  background: var(--progress);
+}
+
+.summary-day[data-today='true'] .summary-day__bar {
+  background: var(--color-digit);
+}
+
+.summary-day__label {
+  padding: 6px 0 2px;
+  font-size: 11px;
+  color: var(--color-faint);
+}
+
+.summary-day[data-today='true'] .summary-day__label {
+  color: var(--color-digit);
 }
 
 /* ─── Reduced motion ─────────────────────────────────────────────────────── */

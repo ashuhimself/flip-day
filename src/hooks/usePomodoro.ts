@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { playChime, primeAudio } from '../lib/chime'
+import { notify } from '../lib/notify'
+import { logFocusSession } from '../lib/stats'
 import { STORAGE_KEYS, readJSON, writeJSON } from '../lib/storage'
 
 export type PomodoroMode = 'focus' | 'short' | 'long'
@@ -50,7 +52,11 @@ function load(): PomodoroState {
     endsAt: typeof s.endsAt === 'number' ? s.endsAt : null,
     rounds: typeof s.rounds === 'number' ? s.rounds : 0,
   }
-  if (state.status === 'running' && (state.endsAt == null || state.endsAt <= Date.now())) return afterComplete(state)
+  if (state.status === 'running' && (state.endsAt == null || state.endsAt <= Date.now())) {
+    // Finished while the page was closed.
+    if (state.mode === 'focus' && state.endsAt != null) logFocusSession(state.endsAt)
+    return afterComplete(state)
+  }
   return state
 }
 
@@ -68,13 +74,17 @@ export function usePomodoro() {
       const t = Date.now()
       if (t >= endsAt) {
         playChime()
-        setState(afterComplete)
+        setState((s) => {
+          if (s.mode === 'focus') logFocusSession(endsAt)
+          return afterComplete(s)
+        })
+        notify(state.mode === 'focus' ? 'Focus session done' : 'Break over', state.mode === 'focus' ? 'Time for a break.' : 'Ready to focus again?')
       } else setNow(t)
     }
     tick()
     const id = window.setInterval(tick, 250)
     return () => window.clearInterval(id)
-  }, [status, endsAt])
+  }, [status, endsAt, state.mode])
 
   const start = useCallback(() => {
     primeAudio()
@@ -91,6 +101,14 @@ export function usePomodoro() {
     )
   }, [])
 
+  /** Start a fresh focus session right away, whatever was set before. */
+  const focus = useCallback(() => {
+    primeAudio()
+    const t = Date.now()
+    setNow(t)
+    setState((s) => ({ ...fresh('focus', s.rounds), status: 'running', endsAt: t + DURATIONS.focus }))
+  }, [])
+
   const reset = useCallback(() => setState((s) => fresh(s.mode, s.rounds)), [])
 
   const setMode = useCallback((mode: PomodoroMode) => setState((s) => fresh(mode, s.rounds)), [])
@@ -105,6 +123,7 @@ export function usePomodoro() {
     roundsInCycle: state.rounds % ROUNDS_PER_CYCLE,
     start,
     pause,
+    focus,
     reset,
     setMode,
   }

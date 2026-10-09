@@ -10,11 +10,16 @@ Flipday shows a large split-flap clock in the middle of the screen. Around it, s
 
 - **Flip clock** with a real split-flap animation. 12 or 24 hour, seconds on or off, date on or off.
 - **Time zones.** Show 1 to 3 clocks at once. The first one is the main clock. The others appear smaller underneath with their own date and the time difference. Included places: India, New York, Atlanta, Chicago, Denver, Los Angeles, Perth, Adelaide, Brisbane, Sydney, Auckland and Wellington. The main clock starts on your own time zone. If your city is not in the list, it is added for you.
-- **Timeboxing.** Give tasks a fixed slot on the clock (for example 9:00 to 10:30, "Deep work"). You can plan two blocks at a time; finish one (or mark it done) before adding the next. Both show at the bottom of the screen with time left, and a soft chime plays when a block starts or ends.
-- **Today's tasks.** A simple to-do list for the day. A new day starts with an empty list.
+- **Timeboxing.** Give tasks a fixed slot on the clock (for example 9:00 to 10:30, "Deep work"). You can plan two blocks at a time; finish one (or mark it done) before adding the next. Both show at the bottom of the screen with time left, and a soft chime plays when a block starts or ends. Pick one of today's tasks as a block's title, or press "Timebox it" on a task; marking the block done ticks the task off. Need more time? Add 5 or 15 minutes to the running block.
+- **Day timeline.** A thin bar under the clock shows the day's blocks and where you are now.
+- **Focus inside a block.** Press Focus on the running block to start a 25 minute Pomodoro for it.
+- **Today's tasks.** A simple to-do list for the day. Unfinished tasks from the day before can be moved over with one click.
+- **Summary.** Today's tasks, blocks and focus time, the last 7 days of focus, and your streak of days in a row with something finished.
 - **Pomodoro timer.** 25 minute focus sessions with short and long breaks.
-- **Music.** Paste a YouTube link to play it in the background.
-- **Pop-out window.** Keep the clock or the timer on top of other apps (Chrome and Edge only).
+- **Music.** Paste a YouTube link to play it in the background. It repeats until you pause it.
+- **Pop-out window.** Keep the clock, the timer or the current block on top of other apps (Chrome and Edge only).
+- **Notifications.** Turn them on in Settings to hear about blocks starting, ending or coming up, and Pomodoro sessions ending, while Flipday is in the background.
+- **Install as an app.** Add Flipday to your dock or home screen from the browser's install option. It works offline once loaded.
 - **Light and dark theme.**
 
 ## Privacy
@@ -28,6 +33,10 @@ The only outside service used is the YouTube player, and only when you paste a l
 | Key | Action |
 | --- | --- |
 | `T` | Open or close today's tasks |
+| `B` | Open or close Timebox |
+| `P` | Start or pause the Pomodoro |
+| `F` | Start a focus session |
+| `D` | Mark the running block done |
 | `Esc` | Close the open panel |
 
 ## Setup guide

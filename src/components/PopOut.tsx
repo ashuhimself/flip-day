@@ -9,7 +9,7 @@ import { STORAGE_KEYS, readJSON, writeJSON } from '../lib/storage'
 import { formatMinutes } from '../lib/time'
 import FlipClock from './FlipClock'
 import { MODES } from './Pomodoro'
-import { formatLeft } from './Timebox'
+import { ExtendButtons, FocusButton, formatLeft } from './Timebox'
 
 export type PopOutView = 'clock' | 'pomodoro' | 'timebox'
 
@@ -24,7 +24,7 @@ const SIZES = {
   clock: { width: 440, height: 200 },
   clockSeconds: { width: 580, height: 200 },
   pomodoro: { width: 320, height: 240 },
-  timebox: { width: 340, height: 240 },
+  timebox: { width: 360, height: 280 },
 }
 
 interface PopOutProps {
@@ -39,6 +39,7 @@ interface PopOutProps {
   /** Minutes after midnight on the main clock. */
   minute: number
   onFinishBox: (id: string) => void
+  onExtendBox: (id: string, minutes: number) => void
 }
 
 /**
@@ -56,6 +57,7 @@ export default function PopOut({
   boxStatus,
   minute,
   onFinishBox,
+  onExtendBox,
 }: PopOutProps) {
   const { pipWindow, open, close } = usePictureInPicture()
   const [view, setView] = useState<PopOutView>(() => {
@@ -130,7 +132,15 @@ export default function PopOut({
             ) : view === 'pomodoro' ? (
               <PipPomodoro timer={timer} />
             ) : (
-              <PipTimebox boxes={boxes} status={boxStatus} minute={minute} hour12={hour12} onFinish={onFinishBox} />
+              <PipTimebox
+                boxes={boxes}
+                status={boxStatus}
+                minute={minute}
+                hour12={hour12}
+                timer={timer}
+                onFinish={onFinishBox}
+                onExtend={onExtendBox}
+              />
             )}
           </div>,
           pipWindow.document.body,
@@ -184,11 +194,13 @@ interface PipTimeboxProps {
   status: TimeboxStatus
   minute: number
   hour12: boolean
+  timer: PomodoroTimer
   onFinish: (id: string) => void
+  onExtend: (id: string, minutes: number) => void
 }
 
-/** The running block with its time left, or the next one coming up. */
-function PipTimebox({ boxes, status, minute, hour12, onFinish }: PipTimeboxProps) {
+/** The running block with its time left (and a focus session in it), or the next one coming up. */
+function PipTimebox({ boxes, status, minute, hour12, timer, onFinish, onExtend }: PipTimeboxProps) {
   const { current, left, progress } = status
   const upcoming = boxes.find((b) => isOpenBlock(b, minute) && b.id !== current?.id) ?? null
   const block = current ?? upcoming
@@ -218,7 +230,13 @@ function PipTimebox({ boxes, status, minute, hour12, onFinish }: PipTimeboxProps
           <Check size={15} strokeWidth={2} aria-hidden="true" />
           Done
         </button>
+        {current && <FocusButton timer={timer} className="button pip-box__focus" />}
       </div>
+      {current && (
+        <div className="pip-box__extend">
+          <ExtendButtons id={current.id} onExtend={onExtend} />
+        </div>
+      )}
       {current && upcoming && (
         <p className="pip-box__next">
           Next · {upcoming.title} at {formatMinutes(upcoming.start, hour12)}

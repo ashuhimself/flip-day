@@ -11,6 +11,8 @@ export interface Settings {
   timeZones: string[]
   /** Set once the user picks zones themselves; until then the main clock follows their own time. */
   zonesChosen: boolean
+  /** Desktop notifications for blocks and Pomodoro sessions. */
+  notifications: boolean
 }
 
 function loadSettings(): Settings {
@@ -20,6 +22,7 @@ function loadSettings(): Settings {
     showDate: true,
     timeZones: [LOCAL_ZONE.id],
     zonesChosen: false,
+    notifications: false,
   }
   const stored = readJSON<Partial<Settings>>(STORAGE_KEYS.settings, {})
   // Earlier versions saved India as the default without a flag; treat anything else as a real choice.
