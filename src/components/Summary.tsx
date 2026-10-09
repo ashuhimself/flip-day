@@ -16,7 +16,7 @@ const dateOf = (key: string) => new Date(`${key}T12:00:00`)
 const minutes = (m: number) => (m < 60 ? `${m}m` : `${Math.floor(m / 60)}h${m % 60 ? ` ${m % 60}m` : ''}`)
 
 function describe(d: DayStats) {
-  return `${longDay.format(dateOf(d.dateKey))}: ${minutes(d.focusMinutes)} focus, ${d.tasksDone} tasks done, ${d.blocksDone} blocks done`
+  return `${longDay.format(dateOf(d.dateKey))}: ${minutes(d.focusMinutes)} Pomodoro, ${d.tasksDone} tasks done, ${d.blocksDone} timeboxes done`
 }
 
 /** Today's numbers, the last seven days of focus, and the streak of days with something finished. */
@@ -54,26 +54,26 @@ function SummaryBody({ today, week, streak }: ReturnType<typeof readStats>) {
 
       <dl className="summary-stats">
         <div>
-          <dt>Tasks</dt>
+          <dt title="Tasks done / added">Tasks</dt>
           <dd>
             {today.tasksDone}
             <span>/{today.tasksTotal}</span>
           </dd>
         </div>
         <div>
-          <dt>Blocks</dt>
+          <dt title="Timeboxes marked done / planned">Timeboxes</dt>
           <dd>
             {today.blocksDone}
             <span>/{today.blocksPlanned}</span>
           </dd>
         </div>
         <div>
-          <dt>Focus</dt>
+          <dt title="Time in finished Pomodoro focus sessions">Pomodoro</dt>
           <dd>{minutes(today.focusMinutes)}</dd>
         </div>
       </dl>
 
-      <p className="settings-label summary-chart-title">Focus, last 7 days</p>
+      <p className="settings-label summary-chart-title">Pomodoro, last 7 days</p>
       <div className="summary-chart" aria-hidden="true">
         {week.map((d) => (
           <div key={d.dateKey} className="summary-day" data-today={d === today} title={describe(d)}>

@@ -12,7 +12,7 @@ Flipday shows a large split-flap clock in the middle of the screen. Around it, s
 - **Time zones.** Show 1 to 3 clocks at once. The first one is the main clock. The others appear smaller underneath with their own date and the time difference. Included places: India, New York, Atlanta, Chicago, Denver, Los Angeles, Perth, Adelaide, Brisbane, Sydney, Auckland and Wellington. The main clock starts on your own time zone. If your city is not in the list, it is added for you.
 - **Timeboxing.** Give tasks a fixed slot on the clock (for example 9:00 to 10:30, "Deep work"). You can plan two blocks at a time; finish one (or mark it done) before adding the next. Both show at the bottom of the screen with time left, and a soft chime plays when a block starts or ends. Pick one of today's tasks as a block's title, or press "Timebox it" on a task; marking the block done ticks the task off. Need more time? Add 5 or 15 minutes to the running block.
 - **Today's tasks.** A simple to-do list for the day. Unfinished tasks from the day before can be moved over with one click.
-- **Summary.** Today's tasks, blocks and focus time, the last 7 days of focus, and your streak of days in a row with something finished.
+- **Summary.** Today's tasks and timeboxes done, Pomodoro time, the last 7 days of Pomodoro, and your streak of days in a row with something finished.
 - **Pomodoro timer.** 25 minute focus sessions with short and long breaks.
 - **Music.** Paste a YouTube link to play it in the background. It repeats until you pause it.
 - **Pop-out window.** Keep the clock, the timer or the current block on top of other apps (Chrome and Edge only).
