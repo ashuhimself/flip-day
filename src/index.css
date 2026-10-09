@@ -113,12 +113,15 @@ body {
   inset: 0;
 }
 
-/* Always the full viewport: panels float above and never resize or shift the clock. */
+/* The full viewport above the bottom dock (timeline and block cards), which
+   App measures into --dock-space. Popovers float above and never shift it. */
 .stage {
   position: absolute;
-  inset: 0;
+  inset: 0 0 var(--dock-space, 0px);
   display: grid;
   place-items: center;
+  container-type: size;
+  transition: bottom var(--ui) var(--ease);
 }
 
 /* Shared translucent surface for every floating panel. */
@@ -135,7 +138,8 @@ body {
 
 .clock-wrap {
   /* Four digits span ≈ 4.62 card widths; six span ≈ 7.18. */
-  --card-w: clamp(3.25rem, min(17vw, 27svh), 12.5rem);
+  /* Sized off the stage (cq units), which shrinks to leave room for the bottom dock. */
+  --card-w: clamp(3.25rem, min(17cqw, 27cqh), 12.5rem);
   --card-h: calc(var(--card-w) * 1.42);
   --radius: clamp(8px, calc(var(--card-w) * 0.1), 18px);
   --seam: max(1.5px, calc(var(--card-w) * 0.014));
@@ -146,7 +150,7 @@ body {
 }
 
 .clock-wrap[data-seconds] {
-  --card-w: clamp(2.4rem, min(11.2vw, 22svh), 9.5rem);
+  --card-w: clamp(2.4rem, min(11.2cqw, 22cqh), 9.5rem);
 }
 
 .flip-clock {
@@ -357,12 +361,12 @@ body {
 /* With extra zones the main clock shrinks to make room for a row of small ones.
    --main-w is the main card width; the small clocks scale off it. */
 .clock-wrap[data-zones] {
-  --main-w: clamp(2.6rem, min(15vw, 19svh), 10.5rem);
+  --main-w: clamp(2.6rem, min(15cqw, 19cqh), 10.5rem);
   --card-w: var(--main-w);
 }
 
 .clock-wrap[data-zones][data-seconds] {
-  --main-w: clamp(2rem, min(10.4vw, 16svh), 8.25rem);
+  --main-w: clamp(2rem, min(10.4cqw, 16cqh), 8.25rem);
 }
 
 .main-clock {
@@ -457,6 +461,29 @@ body {
   gap: 12px;
   width: max-content;
   max-width: calc(100vw - 2 * var(--gutter) - 2 * 52px);
+}
+
+.chrome--bottom-center > * {
+  max-width: 100%;
+}
+
+/* Phones: the dock spans the width and sits above the corner buttons. */
+@media (max-width: 639px) {
+  .chrome--bottom-center {
+    bottom: calc(max(var(--gutter), env(safe-area-inset-bottom)) + 48px);
+    align-items: stretch;
+    width: calc(100vw - 2 * var(--gutter));
+    max-width: none;
+  }
+
+  .chrome--bottom-center .timeline {
+    width: 100%;
+  }
+
+  /* Popovers open from the left edge of the toolbar so none run off-screen. */
+  .chrome--top-left .tool {
+    position: static;
+  }
 }
 
 /* Fade out when idle, but reappear for keyboard users. */
@@ -1243,35 +1270,11 @@ body {
   outline-offset: -2px;
 }
 
-/* Focus and extend: above the stretched button, shown on hover. */
+/* Focus and extend: above the stretched button. */
 .timebox-now__actions {
   position: relative;
   display: flex;
   gap: 6px;
-  max-height: 0;
-  margin-top: -10px;
-  overflow: hidden;
-  opacity: 0;
-  transition:
-    max-height var(--ui) var(--ease),
-    margin var(--ui) var(--ease),
-    opacity var(--ui-fast) var(--ease);
-}
-
-.timebox-now:hover .timebox-now__actions,
-.timebox-now:focus-within .timebox-now__actions,
-.timebox-now__actions:has([data-on]) {
-  max-height: 40px;
-  margin-top: 0;
-  opacity: 1;
-}
-
-@media (hover: none) {
-  .timebox-now__actions {
-    max-height: 40px;
-    margin-top: 0;
-    opacity: 1;
-  }
 }
 
 /* Small pill buttons: Focus, +5m, +15m. */

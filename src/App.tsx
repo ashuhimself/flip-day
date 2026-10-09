@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import DateDisplay from './components/DateDisplay'
 import FlipClock from './components/FlipClock'
 import Music from './components/Music'
@@ -100,6 +100,26 @@ export default function App() {
   const [tool, setTool] = useState<Tool | null>(null)
   const idle = useIdle(3500)
 
+  // Room taken by the bottom dock (timeline and block cards), so the clock centers above it.
+  const dockRef = useRef<HTMLDivElement>(null)
+  const [dockSpace, setDockSpace] = useState(0)
+  useEffect(() => {
+    const el = dockRef.current
+    if (!el) return
+    const measure = () => {
+      const r = el.getBoundingClientRect()
+      setDockSpace(r.height ? Math.ceil(window.innerHeight - r.top + 8) : 0)
+    }
+    measure()
+    const observer = new ResizeObserver(measure)
+    observer.observe(el)
+    window.addEventListener('resize', measure)
+    return () => {
+      observer.disconnect()
+      window.removeEventListener('resize', measure)
+    }
+  }, [])
+
   const panelRef = useRef<HTMLElement>(null)
   const triggerRef = useRef<HTMLButtonElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -178,7 +198,7 @@ export default function App() {
   const chromeHidden = idle && !panelOpen && !tool
 
   return (
-    <main className="app">
+    <main className="app" style={{ '--dock-space': `${dockSpace}px` } as CSSProperties}>
       {/* The clock is centered in the full viewport. Everything else floats
           above it, fixed-position, and never takes layout space from it. */}
       <div className="stage">
@@ -202,7 +222,7 @@ export default function App() {
         </div>
       </div>
 
-      <div className="chrome chrome--bottom-center" data-overlay="tool">
+      <div className="chrome chrome--bottom-center" data-overlay="tool" ref={dockRef}>
         <Timeline
           boxes={timeboxes.boxes}
           minute={minute}
