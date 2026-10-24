@@ -59,6 +59,16 @@ export default function Settings({ open, settings, onOpenChange, onChange }: Set
         ]}
         onChange={(v) => onChange('showDate', v)}
       />
+      <Option
+        label="Background"
+        value={settings.background}
+        choices={[
+          ['aurora', 'Aurora'],
+          ['particles', 'Particles'],
+          ['off', 'Off'],
+        ]}
+        onChange={(v) => onChange('background', v)}
+      />
       {notifySupported() && (
         <Option
           label="Notifications"
@@ -76,14 +86,14 @@ export default function Settings({ open, settings, onOpenChange, onChange }: Set
   )
 }
 
-interface OptionProps {
+interface OptionProps<T> {
   label: string
-  value: boolean
-  choices: [boolean, string][]
-  onChange: (value: boolean) => void
+  value: T
+  choices: [T, string][]
+  onChange: (value: T) => void
 }
 
-function Option({ label, value, choices, onChange }: OptionProps) {
+function Option<T extends string | boolean>({ label, value, choices, onChange }: OptionProps<T>) {
   const labelId = useId()
   return (
     <div className="settings-row">

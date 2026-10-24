@@ -3,6 +3,10 @@ import { STORAGE_KEYS, readJSON, writeJSON } from '../lib/storage'
 import { localePrefers12Hour } from '../lib/time'
 import { DEFAULT_ZONE, LOCAL_ZONE, sanitizeZones } from '../lib/timezones'
 
+export type Backdrop = 'aurora' | 'particles' | 'off'
+
+const BACKDROPS: Backdrop[] = ['aurora', 'particles', 'off']
+
 export interface Settings {
   hour12: boolean
   showSeconds: boolean
@@ -13,6 +17,8 @@ export interface Settings {
   zonesChosen: boolean
   /** Desktop notifications for blocks and Pomodoro sessions. */
   notifications: boolean
+  /** Animated background behind the clock. */
+  background: Backdrop
 }
 
 function loadSettings(): Settings {
@@ -23,6 +29,7 @@ function loadSettings(): Settings {
     timeZones: [LOCAL_ZONE.id],
     zonesChosen: false,
     notifications: false,
+    background: 'aurora',
   }
   const stored = readJSON<Partial<Settings>>(STORAGE_KEYS.settings, {})
   // Earlier versions saved India as the default without a flag; treat anything else as a real choice.
@@ -33,6 +40,7 @@ function loadSettings(): Settings {
     ...stored,
     zonesChosen: chosen,
     timeZones: chosen ? sanitizeZones(stored.timeZones) : defaults.timeZones,
+    background: BACKDROPS.includes(stored.background as Backdrop) ? (stored.background as Backdrop) : defaults.background,
   }
 }
 

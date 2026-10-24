@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import AlarmBanner from './components/AlarmBanner'
+import Backdrop from './components/Backdrop'
 import DateDisplay from './components/DateDisplay'
 import FlipClock from './components/FlipClock'
 import Music from './components/Music'
@@ -208,6 +209,12 @@ export default function App() {
 
   return (
     <main className="app" style={{ '--dock-space': `${dockSpace}px` } as CSSProperties}>
+      <Backdrop
+        variant={settings.background}
+        theme={theme}
+        mood={timer.status === 'running' ? (timer.mode === 'focus' ? 'focus' : 'break') : undefined}
+      />
+
       {/* The clock is centered in the full viewport. Everything else floats
           above it, fixed-position, and never takes layout space from it. */}
       <div className="stage">
